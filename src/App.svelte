@@ -1,23 +1,44 @@
 <script>
-	export let name;
 </script>
 
 <main>
-	<h1>Hello {name}!</h1>
-	<p>Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn how to build Svelte apps.</p>
+	<h1>Hello, I'm George</h1>
+	<p>
+		I'm a software developer at Netflix. My most influential contribution to
+		software is my work on RxJava and asynchronous APIs.
+	</p>
+	<ul>
+		<li>
+			<a
+				class="external"
+				href="https://www.linkedin.com/in/georgecampbell/">linkedin</a
+			>
+		</li>
+		<li>
+			<a class="external" href="https://github.com/abersnaze">github</a>
+		</li>
+	</ul>
 </main>
 
 <style>
+	@import url("https://fonts.googleapis.com/css?family=Inconsolata&display=swap");
+
 	main {
-		text-align: center;
+		color: #424242;
+		font-family: Inconsolata, "Courier New", Courier, monospace;
 		padding: 1em;
 		max-width: 240px;
 		margin: 0 auto;
 	}
 
+	.external {
+		background-image: url(/assets/external.svg);
+		background-position: center right;
+		background-repeat: no-repeat;
+		padding-right: 13px;
+	}
+
 	h1 {
-		color: #ff3e00;
-		text-transform: uppercase;
 		font-size: 4em;
 		font-weight: 100;
 	}
