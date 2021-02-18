@@ -1,6 +1,7 @@
 <script>
 </script>
 
+
 <main>
 	<h1>Hello, I'm George</h1>
 	<p>
@@ -21,7 +22,7 @@
 </main>
 
 <style>
-	@import url("https://fonts.googleapis.com/css?family=Inconsolata&display=swap");
+	@import url("inconsolata.woff");
 
 	main {
 		color: #424242;
