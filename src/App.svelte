@@ -1,9 +1,13 @@
 <script>
+	document.title = "GIBR.net: Hello"
 </script>
 
 
 <main>
-	<h1><img src="/lettermark.svg" alt="gibr.net logo" id="logo"/> Hello, I'm George</h1>
+	<h1>
+		<img src="/lettermark.svg" alt="gibr.net logo" id="logo"/>
+		Hello, I'm George.
+	</h1>
 	<p>
 		I'm a software developer at Netflix. My most influential contribution to
 		software is my work on RxJava and asynchronous APIs.
@@ -44,7 +48,7 @@
 		font-weight: 100;
 	}
 
-	img,#logo {
+	#logo {
 		height: 1em;
 		vertical-align: text-bottom;
 	}
