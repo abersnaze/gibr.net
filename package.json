@@ -6,7 +6,7 @@
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "start": "sirv public",
+    "start": "sirv public -single",
     "sb": "start-storybook -s ./public -p 6006",
     "build-sb": "build-storybook"
   },

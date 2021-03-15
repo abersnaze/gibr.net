@@ -19,5 +19,6 @@
     <li>
       <a class="external" href="https://github.com/abersnaze">github</a>
     </li>
+    <li><a href="/uses">things I use</a></li>
   </ul>
 </main>
