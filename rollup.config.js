@@ -1,6 +1,7 @@
 import svelte from 'rollup-plugin-svelte';
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
+import nodePolyfills from '@rollup/plugin-inject';
 import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import css from 'rollup-plugin-css-only';
@@ -37,6 +38,47 @@ export default {
 		file: 'public/build/bundle.js'
 	},
 	plugins: [
+		// add poly fills for jq-web
+		nodePolyfills({
+			// // control which files this plugin applies to
+			// // with include/exclude
+			include: 'node_modules/jq-web/**',
+
+			output: {
+				globals: {
+				}
+			},
+			// exclude: 'node_modules/**',
+
+			// /* all other options are treated as modules...*/
+
+			// // use the default – i.e. insert
+			// // import $ from 'jquery'
+			// $: 'jquery',
+
+			// // use a named export – i.e. insert
+			// // import { Promise } from 'es6-promise'
+			// Promise: [ 'es6-promise', 'Promise' ],
+
+			// // use a namespace import – i.e. insert
+			// // import * as fs from 'fs'
+			// fs: [ 'fs' ],
+			path: ['path'],
+			crypto: ['crypto'],
+
+			// // use a local module instead of a third-party one
+			// 'Object.assign': path.resolve( 'src/helpers/object-assign.js' ),
+
+			// /* ...but if you want to be careful about separating modules
+			//    from other options, supply `options.modules` instead */
+
+			// modules: {
+			//   $: 'jquery',
+			//   Promise: [ 'es6-promise', 'Promise' ],
+			//   'Object.assign': path.resolve( 'src/helpers/object-assign.js' )
+			// }
+		}),
+
 		svelte({
 			compilerOptions: {
 				// enable run-time checks when not in production
