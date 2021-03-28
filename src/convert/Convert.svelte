@@ -12,10 +12,9 @@
 </script>
 
 <main>
-  <h1><Logo /> Convert Things.</h1>
+  <h1><Logo /> Convert Things</h1>
   <section>
-    <Step bind:source depth={0}>
-      <TextNode bind:content={source.content} />
-    </Step>
+    <TextNode bind:content={source.content} />
+    <Step bind:source depth={0} />
   </section>
 </main>

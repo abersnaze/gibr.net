@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@storybook/addon-svelte-csf": "^1.0.0",
-    "base58": "^2.0.1",
+    "base-58": "^0.0.1",
     "jq-web": "^0.5.1",
     "page": "^1.11.6",
     "sirv-cli": "^1.0.0",

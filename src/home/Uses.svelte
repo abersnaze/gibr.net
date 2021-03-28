@@ -94,7 +94,11 @@
           >Cherry MX Blue</a
         > switches.
       </dd>
-      <dt><a href="https://www.apple.com/shop/product/MRME2LL/A">Apple: Magic Mouse 2</a></dt>
+      <dt>
+        <a href="https://www.apple.com/shop/product/MRME2LL/A"
+          >Apple: Magic Mouse 2</a
+        >
+      </dt>
       <dd>Not the best mouse for playing Minecraft but it'll do.</dd>
       <dt>
         <a

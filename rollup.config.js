@@ -65,6 +65,7 @@ export default {
 			// fs: [ 'fs' ],
 			path: ['path'],
 			crypto: ['crypto'],
+			buffer: ['buffer']
 
 			// // use a local module instead of a third-party one
 			// 'Object.assign': path.resolve( 'src/helpers/object-assign.js' ),

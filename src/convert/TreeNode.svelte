@@ -8,7 +8,7 @@
 
 {#if content_type === "object"}
   {#if Array.isArray(content)}
-    <ol>
+    <ol start=0>
       {#each content as item, idx}
         <li>
           <svelte:self bind:content={item} bind:root path={path + "." + idx} />
@@ -39,28 +39,22 @@
 
 <style>
   dl {
-    display: flex;
-    flex-flow: row wrap;
+    margin-block: 0;
+    display: grid;
+    grid-template-columns: min-content auto;
   }
   dt {
-    flex-basis: 20%;
-    padding: 2px 4px;
-    text-align: right;
+    justify-self: end;
+    grid-column: 1;
   }
   dt:after {
     content: ":";
   }
   dd {
-    flex-basis: 70%;
-    flex-grow: 1;
-    margin: 0;
+    margin-left: 0;
+    grid-column: 2;
   }
   ol {
-    counter-reset: item;
-    list-style-type: none;
-  }
-  ol li:before {
-    content: counter(level1) ": "; /*Instead of ". " */
-    counter-increment: level1;
+    margin-block: 0;
   }
 </style>
