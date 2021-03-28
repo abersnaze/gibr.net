@@ -135,7 +135,7 @@ export function base64encode(str, encoder = new TextEncoder()) {
 
 export default {
   base64_decode: {
-    name: "Base 64 decode",
+    name: "Base 64",
     prev: TextNode,
     next: BinaryNode,
     likelyhood: (data) => {
@@ -148,23 +148,9 @@ export default {
       }
     },
   },
-  base64_bin_encode: {
-    name: "Base 64 encode",
+  base64_encode: {
+    name: "Base 64",
     prev: BinaryNode,
-    next: TextNode,
-    likelyhood: (data) => {
-      try {
-        const content = base64encode(data);
-
-        return { score: 1.0, content };
-      } catch (error) {
-        return { score: 0.0, message: error };
-      }
-    },
-  },
-  base64_txt_encode: {
-    name: "Base 64 encode",
-    prev: TextNode,
     next: TextNode,
     likelyhood: (data) => {
       try {
