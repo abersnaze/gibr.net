@@ -30,21 +30,53 @@
   }
 
   function format(bytes) {
-    const lines = [];
-    const maxWidth = bytes.length.toString(16).length + 1;
+    const totalLineCount = Math.ceil(bytes.length / 16);
+    let headLinesBefore = 3;
+    let tailLinesAfter = totalLineCount - 3;
+    if (totalLineCount <= 6) {
+      headLinesBefore = totalLineCount;
+      tailLinesAfter = 7;
+    }
+
+    let addresses = "";
+    let hexDump = "";
+    let chrDump = "";
+
+    let chunks = [];
+
+    const maxAddrWidth = bytes.length.toString(16).length + 1;
 
     // accumulate hex
-    let pad = 0;
     for (let i = 0; i < bytes.length; i += 16) {
-      let chunk = bytes.slice(i, i + 16);
+      const line = Math.floor(i / 16);
+      if (line === headLinesBefore) {
+        chunks.push({ addresses, hexDump, chrDump });
+        addresses = hexDump = chrDump = "";
+      }
+      if (line === tailLinesAfter) {
+        chunks.push({ addresses, hexDump, chrDump });
+        addresses = hexDump = chrDump = "";
+      }
 
       let address = i.toString(16);
-      while (address.length < maxWidth) {
+      while (address.length < maxAddrWidth) {
         address = "0" + address;
       }
-      lines.push({ i, address, chunk });
+      addresses += address + "\n";
+
+      for (let j = i; j < i + 16 && j < bytes.length; j++) {
+        if (j % 8 === 0) {
+          hexDump += " ";
+        }
+        hexDump += toHex(bytes[j]) + " ";
+      }
+      hexDump += "\n";
+
+      chrDump += "|" + encode(bytes, i) + "|\n";
     }
-    return lines;
+
+    chunks.push({ addresses, hexDump, chrDump });
+    return chunks;
   }
 
   // sorry Guy but I don't want to take the time to turn this into a look up table.
@@ -78,25 +110,53 @@
     return chars;
   }
 
-  $: lines = format(content);
+  // either 1 or 3 chunks
+  $: chunks = format(content);
+
+  let more = false;
 </script>
 
-<div class="line">
-  {#each lines as line}
-    <div class="address">{line.address}</div>
-    <div class="hex">
-      {#each line.chunk as byte, i}
-        <span class="byte">{toHex(byte)}</span>
-      {/each}
+<div class="lines">
+  <pre class="address">{chunks[0].addresses}</pre>
+  <pre class="hex">{chunks[0].hexDump}</pre>
+  <pre class="chr">{chunks[0].chrDump}</pre>
+  {#if chunks.length === 3}
+    <div class="more-or-less">
+      <label>
+        <input type="checkbox" bind:checked={more} />
+        {more ? "show less" : "show more"}
+      </label>
     </div>
-    <div class="chr">{encode(content, line.i)}</div>
-  {/each}
+    {#if more}
+      <pre class="address">{chunks[1].addresses}</pre>
+      <pre class="hex">{chunks[1].hexDump}</pre>
+      <pre class="chr">{chunks[1].chrDump}</pre>
+      <div class="more-or-less">
+        <label>
+          <input type="checkbox" bind:checked={more} />
+          {more ? "show less" : "show more"}
+        </label>
+      </div>
+    {/if}
+
+    <pre class="address">{chunks[2].addresses}</pre>
+    <pre class="hex">{chunks[2].hexDump}</pre>
+    <pre class="chr">{chunks[2].chrDump}</pre>
+  {/if}
 </div>
 
 <style>
-  .line {
+  .more-or-less {
+    user-select: none;
+    justify-self: center;
+    grid-column: 1/4;
+  }
+  .lines {
     display: grid;
-    width: 40rem;
+    width: 80ch;
+  }
+  pre {
+    font-family: inherit;
   }
   .address {
     user-select: none;
@@ -105,15 +165,8 @@
   .hex {
     grid-column: 2;
   }
-  .byte::after {
-    content: " ";
-  }
   .chr {
     user-select: none;
     grid-column: 3;
-  }
-  .chr::before,
-  .chr::after {
-    content: "|";
   }
 </style>
