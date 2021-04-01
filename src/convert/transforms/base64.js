@@ -129,10 +129,6 @@ export function base64ToBytes(str) {
   return result.subarray(0, result.length - missingOctets);
 }
 
-export function base64encode(str, encoder = new TextEncoder()) {
-  return bytesToBase64(encoder.encode(str));
-}
-
 export default {
   base64_decode: {
     name: "Base 64",
@@ -154,7 +150,7 @@ export default {
     next: TextNode,
     likelyhood: (data) => {
       try {
-        const content = base64encode(data);
+        const content = bytesToBase64(data);
 
         return { score: 1.0, content };
       } catch (error) {
