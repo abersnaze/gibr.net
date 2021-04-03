@@ -71,13 +71,13 @@ const base64codes = [
   41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
 ];
 
-function getBase64Code(charCode) {
+function getBase64Code(charCode, i) {
   if (charCode >= base64codes.length) {
-    throw new Error("Unable to parse base64 string.");
+    throw new Error("Unable to parse base64 string. at "+ i);
   }
   const code = base64codes[charCode];
   if (code === 255) {
-    throw new Error("Unable to parse base64 string.");
+    throw new Error("Unable to parse base64 string. at "+ i);
   }
   return code;
 }
@@ -106,7 +106,7 @@ export function bytesToBase64(bytes) {
 
 export function base64ToBytes(str) {
   if (str.length % 4 !== 0) {
-    throw new Error("Unable to parse base64 string.");
+    throw new Error("Unable to parse base64 string. not divisable by 4");
   }
   const index = str.indexOf("=");
   if (index !== -1 && index < str.length - 2) {
@@ -116,12 +116,12 @@ export function base64ToBytes(str) {
     n = str.length,
     result = new Uint8Array(3 * (n / 4)),
     buffer;
-  for (let i = 0, j = 0; i < n; i += 4, j += 3) {
+  for (let i = 0, j = 0; i < n; j += 3) {
     buffer =
-      getBase64Code(str.charCodeAt(i)) << 18 |
-      getBase64Code(str.charCodeAt(i + 1)) << 12 |
-      getBase64Code(str.charCodeAt(i + 2)) << 6 |
-      getBase64Code(str.charCodeAt(i + 3));
+      getBase64Code(str.charCodeAt(i++), i) << 18 |
+      getBase64Code(str.charCodeAt(i++), i) << 12 |
+      getBase64Code(str.charCodeAt(i++), i) << 6 |
+      getBase64Code(str.charCodeAt(i++), i);
     result[j] = buffer >> 16;
     result[j + 1] = (buffer >> 8) & 0xFF;
     result[j + 2] = buffer & 0xFF;
@@ -136,7 +136,7 @@ export default {
     next: BinaryNode,
     likelyhood: (data) => {
       try {
-        const content = base64ToBytes(data);
+        const content = base64ToBytes(data.replace(/[\s]*/g, ""));
 
         return { score: 1.0, content };
       } catch (error) {
