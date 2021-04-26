@@ -1,3 +1,4 @@
+import { default as b16_transforms } from "./base16.js";
 import { default as b64_transforms } from "./base64.js";
 import { default as b58_transforms } from "./base58.js";
 import { default as utf8_transforms } from "./utf8.js";
@@ -6,6 +7,7 @@ import { default as yaml_transforms } from "./yaml.js";
 import { default as jq_transforms } from "./jq.js";
 
 const transforms = Object.assign(
+  b16_transforms,
   b64_transforms,
   b58_transforms,
   utf8_transforms,
