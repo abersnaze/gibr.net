@@ -9,7 +9,7 @@ export default {
     likelyhood: (data) => {
       try {
         const score = 1;
-        const content = JSON.stringify(data);
+        const content = JSON.stringify(data, undefined, 2);
         return { score, content };
       } catch (error) {
         return { score: 0.0, message: error };
