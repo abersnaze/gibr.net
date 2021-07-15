@@ -6,19 +6,13 @@
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "start": "sirv public -single",
-    "sb": "start-storybook -s ./public -p 6006",
-    "build-sb": "build-storybook"
+    "start": "sirv public -single"
   },
   "devDependencies": {
     "@babel/core": "^7.13.10",
     "@rollup/plugin-commonjs": "^17.0.0",
     "@rollup/plugin-inject": "^4.0.2",
     "@rollup/plugin-node-resolve": "^11.0.0",
-    "@storybook/addon-actions": "^6.1.21",
-    "@storybook/addon-essentials": "^6.1.21",
-    "@storybook/addon-links": "^6.1.21",
-    "@storybook/svelte": "^6.1.21",
     "babel-loader": "^8.2.2",
     "rollup": "^2.3.4",
     "rollup-plugin-css-only": "^3.1.0",
@@ -29,7 +23,6 @@
     "svelte-loader": "^2.13.6"
   },
   "dependencies": {
-    "@storybook/addon-svelte-csf": "^1.0.0",
     "base-58": "^0.0.1",
     "jq-web": "^0.5.1",
     "page": "^1.11.6",
