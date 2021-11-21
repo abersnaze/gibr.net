@@ -25,5 +25,7 @@
   <dl>
     <dt><a href="/convert">Convert</a></dt>
     <dd>Tools for convert things to other things</dd>
+    <dt><a href="/line">Minecraft Line Generator</a></dt>
+    <dd>Tool for drawing diagonal lines</dd>
   </dl>
 </main>
