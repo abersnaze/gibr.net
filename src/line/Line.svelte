@@ -1,95 +1,135 @@
 <script>
-import { init } from "svelte/internal";
-
   import Logo from "../home/Logo.svelte";
 
   document.title = "GIBR.net: Minecraft Line Generator";
 
-  let coords = {
-    start: [-14, 0, -28],
-    end: [193, 0, -82],
-  };
+  let start = [-14, 0, -28];
+  // let end = [193, 0, -82];
+  let end = [835, 0, -772];
 
-  const directions = new Map();
-  var dx_dir = (dx) => dx > 0 ? 'East' : 'West';
-  var dy_dir = (dy) => dy > 0 ? 'Up' : 'Down';
-  var dz_dir = (dz) => dz > 0 ? 'South' : 'North';
+  $: runs = summarize(points(start, end));
 
-  $: state = init_state(coords.start, coords.end);
-  $: curr = state;
-
-  function init_state(start, end) {
-    var dx = end[0] - start[0];
-    var dy = end[1] - start[1];
-    var dz = end[2] - start[2];
-
-    var mx = Math.abs(dx);
-    var my = Math.abs(dy);
-    var mz = Math.abs(dz);
-
-    var max_dir = [
-      [mx, dx_dir(dx), [my, mz], [dy_dir(dy), dz_dir(dz)], [[0, Math.sign(dy), 0], [0, 0, Math.sign(dz)]], [Math.sign(dx), 0, 0]],
-      [my, dy_dir(dy), [mx, mz], [dx_dir(dx), dz_dir(dz)], [[Math.sign(dx), 0, 0], [0, 0, Math.sign(dz)]], [0, Math.sign(dy), 0]],
-      [mz, dz_dir(dz), [mx, my], [dx_dir(dx), dy_dir(dy)], [[Math.sign(dx), 0, 0], [0, Math.sign(dy), 0]], [0, 0, Math.sign(dz)]],
-    ].reduce((a, b) => (a[0] > b[0]) ? a : b);
-
-    var state = {
-      coords: start,
-      face: max_dir[1],
-      step: null,
-      step_sign: max_dir[5],
-      offset: [max_dir[0]/2, max_dir[0]/2],
-      delta_mag: max_dir[2],
-      delta_sign: max_dir[4],
-      delta_dir: max_dir[3],
-      correction: max_dir[0],
+  /**
+   * generic function for apply a function to vectors
+   * @param func
+   * @param args
+   */
+  function vec(func, ...args) {
+    console.assert(args.length > 0);
+    var len = args[0].length;
+    for (let a = 1; a < args.length; a++) {
+      console.assert(
+        args[a].length === len,
+        "argument %d was %d long when expected %d",
+        a,
+        args[a].length,
+        len
+      );
     }
-
-    return state;
+    var result = [];
+    for (let i = 0; i < len; i++) {
+      var slice = [];
+      for (let a = 0; a < args.length; a++) {
+        slice.push(args[a][i]);
+      }
+      result.push(func(...slice));
+    }
+    return result;
   }
 
-  function vect_add(a, b) {
-    var c = [];
-    for (let i = 0; i < a.length; i++) {
-      c.push(a[i] + b[i]);
+  /**
+   * generate all the voxels closet to the line.
+   * @param start
+   * @param end
+   */
+  function points(start, end) {
+    var points = [start];
+
+    // the direction change
+    var delta = vec((s, e) => e - s, start, end);
+    // the magnitude of the change. used to accrue error
+    var mag = vec(Math.abs, delta);
+    // +/-1 for each dimention for the direction of the steps
+    var sign = vec(Math.sign, delta);
+    // pull out the maximum change as a threshold
+    var threshold = Math.max(...mag);
+    // start the error at half the maximum (perfect line starts in the middle of the cube)
+    var err = new Array(start.length).fill(threshold / 2);
+
+    // start at the beginning
+    var curr = start;
+    // continue to the end
+    for (var step = 0; step < threshold; step++) {
+      // add the error incurred from moving
+      err = vec((e, m) => e + m, err, mag);
+      // if the error is higher than the threshold
+      // move over one square
+      curr = vec((c, s, e) => (e >= threshold ? c + s : c), curr, sign, err);
+      // now that we moved over reduce the error by one threshold
+      err = vec((e) => (e >= threshold ? e - threshold : e), err);
+
+      // save the point
+      points.push(curr);
     }
-    return c;
+
+    return points;
   }
 
-  function update() {
-    curr = step(curr);
-  }
-  function reset() {
-    curr = state;
+  function summarize(points) {
+    var steps = [];
+    let index_a = 0;
+    while (index_a < points.length) {
+      const point_a = points[index_a];
+      var point_b, delta;
+      let index_b = index_a + 1;
+      for (; index_b < points.length; index_b++) {
+        const point_b_candidate = points[index_b];
+        const delta_candidate = vec(
+          (a, b) => a - b,
+          point_a,
+          point_b_candidate
+        );
+        // we've gone too far
+        const x = delta_candidate.reduce(
+          (s, d) => s + (Math.abs(d) > 1 ? 1 : 0),
+          0
+        );
+        if (x > 1) {
+          break;
+        }
+
+        point_b = point_b_candidate;
+        delta = delta_candidate;
+      }
+
+      var move = delta[0] + "," + delta[1] + "," + delta[2];
+      if (steps.length > 0) {
+        var last_step = steps[steps.length - 1];
+        if (last_step.move === move) {
+          last_step.times++;
+          last_step.end = point_b;
+        } else {
+          steps.push({ move: move, times: 1, start: point_a, end: point_b });
+        }
+      } else {
+        steps.push({ move: move, times: 1, start: point_a, end: point_b });
+      }
+
+      index_a = index_b + 1;
+    }
+    return steps;
   }
 
-  function step(state) {
-    var next_offset = [...state.offset];
-    var next_coords = state.coords;
-    var step_count = 0;
-    while (next_offset[1] < state.correction && next_offset[0] < state.correction) {
-      next_offset = [next_offset[0] + state.delta_mag[0], next_offset[1] + state.delta_mag[1]];
-      next_coords = vect_add(next_coords, state.step_sign)
-      step_count++;
-    }
-    var next_step = step_count +'*'+ state.face;
-    if (next_offset[0] > state.correction) {
-      next_offset[0] -= state.correction;
-      next_step += ' and ' + state.delta_dir[0]
-      next_coords = vect_add(next_coords, state.delta_sign[0]);
-    }
-    if (next_offset[1] > state.correction) {
-      next_offset[1] -= state.correction;
-      next_step += ' and ' + state.delta_dir[1]
-      next_coords = vect_add(next_coords, state.delta_sign[1]);
-    }
-    var next_state = {
-      ...state,
-      coords: next_coords,
-      step: next_step,
-      offset: next_offset,
-    };
-    return next_state; 
+  let highlight = 0;
+  function next(event) {
+    jump(event, highlight < runs.length - 1 ? highlight + 1 : highlight);
+  }
+  function prev(event) {
+    jump(event, highlight > 0 ? highlight - 1 : highlight);
+  }
+  function jump(event, i) {
+    highlight = i;
+    document.getElementById(i).scrollIntoView();
   }
 </script>
 
@@ -97,26 +137,73 @@ import { init } from "svelte/internal";
   <h1><Logo /> Minecraft Line Generator</h1>
   <section>
     <h2>Where are you?</h2>
-    <label for="startx">X:</label>
-    <input id="startx" bind:value={coords.start[0]} />
-    <label for="startz">Z:</label>
-    <input id="startz" bind:value={coords.start[2]} />
+    <div class="coords">
+      <label for="startx">X:</label>
+      <input id="startx" bind:value={start[0]} type="number" />
+      <label for="starty">Y:</label>
+      <input id="starty" bind:value={start[1]} type="number" />
+      <label for="startz">Z:</label>
+      <input id="startz" bind:value={start[2]} type="number" />
+    </div>
   </section>
   <section>
     <h2>Where do you want to go?</h2>
-    <label for="endx">X:</label>
-    <input id="endx" bind:value={coords.end[0]} />
-    <label for="endz">Z:</label>
-    <input id="endz" bind:value={coords.end[2]} />
+    <div class="coords">
+      <label for="endx">X:</label>
+      <input id="endx" bind:value={end[0]} type="number" />
+      <label for="endy">Y:</label>
+      <input id="endy" bind:value={end[1]} type="number" />
+      <label for="endz">Z:</label>
+      <input id="endz" bind:value={end[2]} type="number" />
+    </div>
   </section>
   <section>
     <h2>Instructions</h2>
-    <p>Face: {curr.face}</p>
-    <p>Coords: {curr.coords}</p>
-    <p>Step: {step(curr).step}</p>
-    <p>
-      <button on:click={update}>Did It</button>
-      <button on:click={reset}>Reset</button>
-    </p>
+    <table>
+      {#each runs as run, i}
+        {#if i === highlight}
+          <tr>
+            <th>from</th>
+            <th>do</th>
+            <th>times</th>
+            <th>to</th>
+          </tr>
+        {/if}
+        <tr id={i} class={i === highlight ? "highlight" : undefined}>
+          <td>{run.start}</td>
+          <td>{run.move}</td>
+          <td>{run.times}</td>
+          <td>{run.end}</td>
+          {#if i === highlight}
+            <td><button on:click={next}>⬇︎</button></td>
+            <td><button on:click={prev}>⬆︎</button></td>
+          {:else}
+            <td><button on:click={(event) => jump(event, i)}>⬅︎</button></td>
+          {/if}
+        </tr>
+      {/each}
+    </table>
+    ↓
   </section>
 </main>
+
+<style>
+  .coords {
+    display: flex;
+    align-items: baseline;
+  }
+
+  td {
+    padding-inline-start: 1rem;
+    padding-inline-end: 1rem;
+  }
+  tr {
+    padding-inline-start: -0.5rem;
+    padding-inline-end: -0.5rem;
+    align-items: baseline;
+  }
+
+  .highlight {
+    background-color: yellow;
+  }
+</style>
