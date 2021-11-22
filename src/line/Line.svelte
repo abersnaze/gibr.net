@@ -78,14 +78,17 @@
   function summarize(points) {
     var steps = [];
     let index_a = 0;
-    while (index_a < points.length) {
+    while (index_a < points.length - 1) {
       const point_a = points[index_a];
-      var point_b, delta;
-      let index_b = index_a + 1;
-      for (; index_b < points.length; index_b++) {
-        const point_b_candidate = points[index_b];
+      var index_b, point_b, delta;
+      for (
+        let index_b_candidate = index_a + 1;
+        index_b_candidate < points.length;
+        index_b_candidate++
+      ) {
+        const point_b_candidate = points[index_b_candidate];
         const delta_candidate = vec(
-          (a, b) => a - b,
+          (a, b) => b - a,
           point_a,
           point_b_candidate
         );
@@ -95,17 +98,21 @@
           0
         );
         if (x > 1) {
+          console.log("too much", delta_candidate);
           break;
         }
 
+        index_b = index_b_candidate;
         point_b = point_b_candidate;
         delta = delta_candidate;
       }
+      console.log(index_a, point_a, index_b, point_b);
 
       var move = delta[0] + "," + delta[1] + "," + delta[2];
       if (steps.length > 0) {
         var last_step = steps[steps.length - 1];
         if (last_step.move === move) {
+          console.log("again", last_step);
           last_step.times++;
           last_step.end = point_b;
         } else {
@@ -115,7 +122,7 @@
         steps.push({ move: move, times: 1, start: point_a, end: point_b });
       }
 
-      index_a = index_b + 1;
+      index_a = index_b;
     }
     return steps;
   }
@@ -183,7 +190,6 @@
         </tr>
       {/each}
     </table>
-    ↓
   </section>
 </main>
 
