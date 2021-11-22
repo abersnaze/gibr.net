@@ -90,7 +90,7 @@
       <dt><a href="http://www.filcokeyboards.co.uk/">Filco: Keyboard</a></dt>
       <dd>
         Tenkeyless size with <a
-          href="https://www.cherrymx.de/en/mx-original/mx-blue.html"
+          href="https://www.cherrymx.de/en/cherry-mx/mx-original/mx-blue.html"
           >Cherry MX Blue</a
         > switches.
       </dd>
