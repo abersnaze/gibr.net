@@ -1,6 +1,6 @@
 import TextNode from "../TextNode.svelte";
 import TreeNode from "../TreeNode.svelte";
-// import { jq } from "./jq.asm.bundle.min.js";
+import { jq } from "./jq.asm.bundle.min.js";
 
 export default {
   jq_transform: {

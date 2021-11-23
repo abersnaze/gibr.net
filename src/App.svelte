@@ -3,7 +3,7 @@
   import Convert from "./convert/Convert.svelte";
   import Home from "./home/Home.svelte";
   import Uses from "./home/Uses.svelte";
-  import Line from "./line/Line.svelte";
+  import Line from "./mc/Line.svelte";
 
   let page;
   router("/", () => (page = Home));

@@ -199,6 +199,10 @@
     align-items: baseline;
   }
 
+  input {
+    width: 5rem;
+  }
+
   td {
     padding-inline-start: 1rem;
     padding-inline-end: 1rem;
