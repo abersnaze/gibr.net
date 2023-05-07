@@ -1,105 +1,108 @@
 <script lang="ts">
-	import Choices from './Choices.svelte';
-	import type {
-		AnalyzeEvent,
-		AnalyzeFunction,
-		ChoiceEvent,
-		Guesses,
-		InputEvent,
-		ResultsEvent,
-		Value
-	} from './common';
-	import Display from './Display.svelte';
+	import { onDestroy } from 'svelte';
+	import type { Choices, Settings, TransformId, Success, Result } from './model';
+	import { analyze, transforms } from './transforms/index';
+	import { writable } from 'svelte/store';
 
-	export let analyzer: AnalyzeFunction;
-	export let input: Value;
+	export let depth: number = 0;
+	export let choices: Choices;
+	export let source: unknown;
 
-	analyzer(id, input, (results) => {
-		console.log(results);
-	});
+	let transform_id: TransformId | undefined = undefined;
+	let options = {};
 
-	// worker.onmessage = (msg: MessageEvent<ResultsEvent>) => {
-	// 	console.log(msg.data);
-	// 	const step = msg.data.step;
-	// 	if (steps[step].timestamp < msg.data.timestamp) {
-	// 		steps[step].timestamp = msg.data.timestamp;
-	// 		steps[step].results = msg.data.results;
-	// 	}
-	// };
-
-	// function compute(_input: Value, _worker: Worker): Guesses {
-	// 	worker.dispatchEvent()
-	// 	return [];
-	// }
-	// $: choices = compute(input, worker);
-
-	// function propagateOut(event: CustomEvent<InputEvent>, index: number) {
-	// 	propagateUp(event.detail.content, index);
-	// 	propagateDown(event.detail.content, index);
-	// }
-	// function propagateUp(content: unknown, index: number) {
-	// 	if (index < 0) return;
-	// 	const next_index = index - 1;
-	// 	const [changed, next_content] = wrap(content, next_index);
-	// 	if (changed) propagateUp(next_content, next_index);
-	// }
-	// function wrap(content: unknown, to: number): [boolean, unknown] {
-	// 	// incorperate downstream changes into the upsream input.
-	// 	// because the transform is in charge of applying the
-	// 	// change t
-	// 	return [false, content];
-	// }
-	// function propagateDown(content: unknown, index: number) {
-	// 	if (index > steps.length) return;
-	// 	const changed = analyze(content, index, index + 1);
-	// 	if (changed) propagateDown(event, index + 1);
-	// }
-	// function analyze(value: unknown, from: number, to: number): boolean {
-	// 	worker.postMessage({
-	// 		step: from,
-	// 		time: window.performance.now(),
-	// 		value: value,
-	// 		options: steps[from].options
-	// 	} as AnalyzeEvent);
-	// 	return false;
-	// }
-	// function onnext(event: CustomEvent<ChoiceEvent>, i: number) {
-	// 	if (i === steps.length - 1) {
-	// 		const value = event.detail.value;
-	// 		if (value !== undefined) {
-	// 			const nextStep: Step = {
-	// 				timestamp: 0,
-	// 				value,
-	// 				results: [],
-	// 				options: {}
-	// 			};
-	// 			steps = [...steps, nextStep];
-	// 			if (value.success) {
-	// 				analyze(value.content, i + 1, i + 2);
-	// 			}
-	// 		}
-	// 	} else {
-	// 		const value = event.detail.value;
-	// 		if (value == undefined) {
-	// 			steps = steps.slice(0, i+1)
-	// 		}
-	// 	}
-	// }
+	$: results = analyze(source, choices.next_choices.keys());
+	$: {
+		if (transform_id !== undefined) {
+			choices.selected = { transform_id, options: JSON.stringify(options) };
+		} else {
+			choices.seleced = undefined;
+		}
+	}
+	function isSelected(result: Result): result is Success {
+		return result.state == 'success';
+	}
+	$: upstream = writable(source);
+	onDestroy(
+		upstream.subscribe((value) => {
+			source = value;
+		})
+	);
 </script>
 
-<!-- svelte-ignore a11y-invalid-attribute -->
-<!-- <a href="javascript:(function()%7Bvar%20baseUrl%20%3D%20%22https%3A%2F%2Fwww.gibr.net%2Fconvert%3Finput%3D%22%3B%0Avar%20input%20%3D%20window.getSelection()%3B%0Avar%20encoded%20%3D%20encodeURIComponent(input)%0Awindow.open(baseUrl%20%2B%20encoded)%3B%7D)()%3B" >
-	bookmarklet
-</a> -->
+<div>
+	{#await results}
+		<div>analyzing...</div>
+	{:then results}
+		<div class="transform-menu">
+			{#each results as result, idx (idx)}
+				{@const transform = transforms[result.transform_id]}
+				{#if result.state === 'success'}
+					<input
+						type="radio"
+						bind:group={transform_id}
+						id={depth + '-' + idx + '-transform'}
+						value={result.transform_id}
+						class="transform-radio"
+					/>
+					<label for={depth + '-' + idx + '-transform'} class="transform-label"
+						>{Math.round(result.score * 100) + '% ' + transform.name}</label
+					>
+				{:else if result.state === 'failure'}
+					<input
+						type="radio"
+						bind:group={transform_id}
+						id={depth + '-' + idx + '-transform'}
+						value={result.transform_id}
+						class="transform-radio"
+					/>
+					<label for={depth + '-' + idx + '-transform'} class="transform-label"
+						>err {transform.name}</label
+					>
+				{/if}
+			{/each}
+		</div>
+		{#if choices.selected}
+			{@const selected = choices.selected}
+			{@const selected_result = results
+				.filter(isSelected)
+				.find((r) => r.transform_id === selected.transform_id)}
+			{#if selected_result}
+				<svelte:self bind:source={upstream} depth={depth + 1} bind:choices />
+				<span>{transform_id} component here {selected_result.output}</span>
+			{/if}
+		{/if}
+	{:catch error}
+		<div>
+			<small class="error">{error.message}</small>
+		</div>
+	{/await}
+</div>
 
-<!-- {#each steps as step, i}
-	<section>
-		<Display output={step.value} on:input={(event) => propagateOut(event, i)} />
-		<Choices {step} bind:selected={step.selected} on:next={(event) => onnext(event, i)} />
-	</section>
-{/each} -->
+<style>
+	/* .transform-menu {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: nowrap;
+	}
 
-<#if input.success>
-	<Choices {analyzer} bind:input={input} />
-	<svelte:self {analyzer} bind:input={input} />
-</#if>
+	.transform-radio {
+		display: none;
+	}
+
+	.transform-radio:checked + .transform-label {
+		filter: invert(1);
+	}
+
+	.transform-label {
+		color: var();
+		border: solid thin;
+		border-radius: 0.3em;
+		padding: 0.1em;
+		margin: 0.2em;
+	}
+
+	.error {
+		color: red;
+	} */
+</style>

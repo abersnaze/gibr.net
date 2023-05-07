@@ -30,6 +30,8 @@
 	"type": "module",
 	"dependencies": {
 		"@fontsource/inconsolata": "^4.5.7",
-		"ts-debounce": "^4.0.0"
+		"base-58": "^0.0.1",
+		"ts-debounce": "^4.0.0",
+		"yaml": "^2.2.1"
 	}
 }

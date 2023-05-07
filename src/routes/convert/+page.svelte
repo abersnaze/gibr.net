@@ -1,16 +1,20 @@
 <script lang="ts">
-	import type { Value } from './common';
-	import Display from './Display.svelte';
 	import Step from './Step.svelte';
-	import WithWorker from './WithAnalyzer.svelte';
+	import TextNode from './TextNode.svelte';
+	import type { Choices } from './model';
 
-	let value: Value = {
-		success: true,
-		content: ''
-	};
+	let source = '"asf"';
+
+	let choices = {
+		selected: undefined,
+		next_choices: new Map()
+	} as Choices;
 </script>
 
-<WithWorker let:analyzer>
-	<Display bind:output={value} />
-	<Step {analyzer} bind:input={value} />
-</WithWorker>
+<main>
+	<h1>Convert Things</h1>
+	<section>
+		<TextNode bind:content={source} />
+		<Step bind:source depth={0} bind:choices />
+	</section>
+</main>
