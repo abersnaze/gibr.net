@@ -1,5 +1,6 @@
-import TextNode from "../TextNode.svelte";
-import BinaryNode from "../BinaryNode.svelte";
+import { type Transform, type Content } from "../model.js";
+import TextDisplay from "../display/TextDisplay.svelte";
+import BinaryDisplay from "../display/BinaryDisplay.svelte";
 
 /*
 https://gist.github.com/enepomnyaschih/72c423f727d395eeaa09697058238727
@@ -23,24 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-/*
-// This constant can also be computed with the following algorithm:
-const base64abc = [],
-  A = "A".charCodeAt(0),
-  a = "a".charCodeAt(0),
-  n = "0".charCodeAt(0);
-for (let i = 0; i < 26; ++i) {
-  base64abc.push(String.fromCharCode(A + i));
-}
-for (let i = 0; i < 26; ++i) {
-  base64abc.push(String.fromCharCode(a + i));
-}
-for (let i = 0; i < 10; ++i) {
-  base64abc.push(String.fromCharCode(n + i));
-}
-base64abc.push("+");
-base64abc.push("/");
-*/
 const base64abc = [
   "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
   "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
@@ -49,17 +32,6 @@ const base64abc = [
   "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "+", "/"
 ];
 
-/*
-// This constant can also be computed with the following algorithm:
-const l = 256, base64codes = new Uint8Array(l);
-for (let i = 0; i < l; ++i) {
-  base64codes[i] = 255; // invalid character
-}
-base64abc.forEach((char, index) => {
-  base64codes[char.charCodeAt(0)] = index;
-});
-base64codes["=".charCodeAt(0)] = 0; // ignored anyway, so we just need to prevent an error
-*/
 const base64codes = [
   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -71,7 +43,7 @@ const base64codes = [
   41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
 ];
 
-function getBase64Code(charCode, i) {
+function getBase64Code(charCode: number, i: number) {
   if (charCode >= base64codes.length) {
     throw new Error("Unable to parse base64 string. at "+ i);
   }
@@ -82,7 +54,7 @@ function getBase64Code(charCode, i) {
   return code;
 }
 
-export function bytesToBase64(bytes) {
+export function bytesToBase64(bytes: Uint8Array): string {
   let result = '', i, l = bytes.length;
   for (i = 2; i < l; i += 3) {
     result += base64abc[bytes[i - 2] >> 2];
@@ -104,7 +76,7 @@ export function bytesToBase64(bytes) {
   return result;
 }
 
-export function base64ToBytes(str) {
+export function base64ToBytes(str: string): Uint8Array {
   if (str.length % 4 !== 0) {
     throw new Error("Unable to parse base64 string. not divisable by 4");
   }
@@ -129,33 +101,67 @@ export function base64ToBytes(str) {
   return result.subarray(0, result.length - missingOctets);
 }
 
-export default {
+const transforms: Record<string, Transform> = {
   base64_decode: {
     name: "Base 64",
-    prev: TextNode,
-    next: BinaryNode,
-    likelyhood: (data) => {
+    prev: TextDisplay,
+    analyze: (data: string) => {
       try {
+        // Type check - ensure data is a string
+        if (typeof data !== 'string') {
+          return { score: 0.0, message: `Expected string, got ${typeof data}` };
+        }
+        
         const content = base64ToBytes(data.replace(/[\s]*/g, ""));
+        
+        // Provide the inverse function: binary -> base64 string
+        const inverse = (content: Content, options?: string) => {
+          if (content instanceof Uint8Array) {
+            return bytesToBase64(content);
+          }
+          throw new Error("Expected Uint8Array for base64 encoding");
+        };
 
-        return { score: 1.0, content };
+        return { 
+          score: 1.0, 
+          content,
+          inverse
+        };
       } catch (error) {
-        return { score: 0.0, message: error };
+        return { score: 0.0, message: error instanceof Error ? error.message : String(error) };
       }
     },
   },
   base64_encode: {
     name: "Base 64",
-    prev: BinaryNode,
-    next: TextNode,
-    likelyhood: (data) => {
+    prev: BinaryDisplay,
+    analyze: (data: Uint8Array) => {
       try {
+        // Type check - ensure data is a Uint8Array
+        if (!(data instanceof Uint8Array)) {
+          return { score: 0.0, message: `Expected Uint8Array, got ${typeof data}` };
+        }
+        
         const content = bytesToBase64(data);
+        
+        // Provide the inverse function: base64 string -> binary
+        const inverse = (content: Content, options?: string) => {
+          if (typeof content === 'string') {
+            return base64ToBytes(content.replace(/[\s]*/g, ""));
+          }
+          throw new Error("Expected string for base64 decoding");
+        };
 
-        return { score: 1.0, content };
+        return { 
+          score: 1.0, 
+          content,
+          inverse
+        };
       } catch (error) {
-        return { score: 0.0, message: error };
+        return { score: 0.0, message: error instanceof Error ? error.message : String(error) };
       }
     },
   },
 };
+
+export default transforms;

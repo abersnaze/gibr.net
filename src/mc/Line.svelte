@@ -167,28 +167,30 @@
   <section>
     <h2>Instructions</h2>
     <table>
-      {#each runs as run, i}
-        {#if i === highlight}
-          <tr>
-            <th>from</th>
-            <th>do</th>
-            <th>times</th>
-            <th>to</th>
-          </tr>
-        {/if}
-        <tr id={i} class={i === highlight ? "highlight" : undefined}>
-          <td>{run.start}</td>
-          <td>{run.move}</td>
-          <td>{run.times}</td>
-          <td>{run.end}</td>
+      <tbody>
+        {#each runs as run, i}
           {#if i === highlight}
-            <td><button on:click={next}>⬇︎</button></td>
-            <td><button on:click={prev}>⬆︎</button></td>
-          {:else}
-            <td><button on:click={(event) => jump(event, i)}>⬅︎</button></td>
+            <tr>
+              <th>from</th>
+              <th>do</th>
+              <th>times</th>
+              <th>to</th>
+            </tr>
           {/if}
-        </tr>
-      {/each}
+          <tr id={i} class={i === highlight ? "highlight" : undefined}>
+            <td>{run.start}</td>
+            <td>{run.move}</td>
+            <td>{run.times}</td>
+            <td>{run.end}</td>
+            {#if i === highlight}
+              <td><button on:click={next}>⬇︎</button></td>
+              <td><button on:click={prev}>⬆︎</button></td>
+            {:else}
+              <td><button on:click={(event) => jump(event, i)}>⬅︎</button></td>
+            {/if}
+          </tr>
+        {/each}
+      </tbody>
     </table>
   </section>
 </main>

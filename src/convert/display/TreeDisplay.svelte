@@ -34,7 +34,7 @@
     <em>null</em>
   {/if}
 {:else}
-  <span contenteditable bind:textContent={content} />
+  <span contenteditable bind:textContent={content}></span>
 {/if}
 
 <style>

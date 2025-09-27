@@ -1,5 +1,9 @@
-<script>
-  export let content;
+<script lang="ts">
+  import type { BinaryContent } from "../model";
+
+  export let content: BinaryContent;
+  
+  console.log('[BinaryDisplay] Component mounted with content:', content, 'type:', typeof content, 'length:', content?.length);
 
   // Init for toHex function
   const LUT_HEX_4b = [
@@ -30,6 +34,11 @@
   }
 
   function format(bytes) {
+    // Handle empty arrays
+    if (bytes.length === 0) {
+      return [{ addresses: '', hexDump: '', chrDump: '' }];
+    }
+    
     const totalLineCount = Math.ceil(bytes.length / 16);
     let headLinesBefore = 3;
     let tailLinesAfter = totalLineCount - 3;

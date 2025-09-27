@@ -1,24 +1,32 @@
-import TextNode from "../TextNode.svelte";
-import TreeNode from "../TreeNode.svelte";
+import TextDisplay from "../display/TextDisplay.svelte";
+import TreeDisplay from "../display/TreeDisplay.svelte";
 import { jq } from "./jq.asm.bundle.min.js";
 
-export default {
+const transforms = {
   jq_transform: {
     name: "JQ",
-    prev: TreeNode,
-    optionComp: TextNode,
+    prev: TreeDisplay,
+    optionComp: TextDisplay,
     defaults: ".",
-    likelyhood: (data, options) => {
+    analyze: (data, options) => {
       try {
         const content = jq.json(data, options);
         if (content === null || content === undefined) {
           return { score: 0.0, message: 'not found' };
         }
-        const curr = typeof content === "object" ? TreeNode : TextNode;
-        return { score: 1.0, content, curr };
+        
+        // Note: JQ transforms are generally not reversible since they can be
+        // complex queries that lose information. No inverse function provided.
+        return { 
+          score: 1.0, 
+          content,
+          inverse: null,
+        };
       } catch (error) {
         return { score: 0.0, message: error };
       }
     },
   },
 };
+
+export default transforms;

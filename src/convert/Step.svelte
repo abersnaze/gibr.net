@@ -1,53 +1,90 @@
-<script>
-  import { analyze, defaultOpts } from "./transforms";
+<script lang="ts">
+  import { analyze, defaultOpts } from "./transforms/index";
 
-  export let depth;
-  export let source;
-
+  export let index: number;
+  export let step: any;
+  export let onupdate: (event: any) => void = () => {};
+  
   let options = defaultOpts;
-  $: results = analyze(source, options);
-  $: selected_result = results.find((r) => r.from_id === source.transform_id);
+  
+  $: results = analyze(step, options);
+  $: selected_result = results.find((r) => r.from_id === step.transform_id);
+
+  function handleTransformSelect(transformId: string) {
+    step.transform_id = transformId;
+    
+    // Find the selected result and apply the transform
+    const result = results.find((r) => r.from_id === transformId);
+    if (result && result.content !== undefined) {
+      console.log(`[Step ${index}] Transform applied:`, {
+        transformId,
+        resultContent: result.content,
+        resultType: typeof result.content,
+        resultDisplay: result.display
+      });
+      
+      // Pass the result back to parent for creating the next step
+      // Include the display component for the next step
+      onupdate({ detail: { 
+        index, 
+        result: {
+          ...result,
+          resultDisplay: result.display
+        }
+      } });
+      return;
+    }
+    
+    onupdate({ detail: { index } });
+  }
+
+  function handleContentChange(event: any) {
+    const newContent = event.detail?.content || event.detail;
+    step.content = newContent;
+    onupdate({ detail: { index } });
+  }
 </script>
 
 <div>
+  <!-- Display current step content (editable) -->
+  <svelte:component
+    this={step.curr}
+    bind:content={step.content}
+    on:content-change={handleContentChange}
+  />
+  
+  <!-- Transform menu -->
   <div class="transform-menu">
     {#each results as result, idx (idx)}
       <input
         type="radio"
-        bind:group={source.transform_id}
-        id={depth + "-" + idx + "-transform"}
+        bind:group={step.transform_id}
+        id={index + "-" + idx + "-transform"}
         value={result.from_id}
         class="transform-radio"
+        on:change={() => handleTransformSelect(result.from_id)}
       />
       <label
-        type="radio"
-        value={result.from_name}
-        for={depth + "-" + idx + "-transform"}
+        for={index + "-" + idx + "-transform"}
         class="transform-label"
         >{Math.round(result.score * 100) + "% " + result.from_name}</label
       >
     {/each}
   </div>
-  {#if selected_result}
-    {#if selected_result.optionComp}
-      <svelte:component
-        this={selected_result.optionComp}
-        bind:content={options[selected_result.from_id]}
-      />
-    {/if}
-    {#if selected_result.message}
-      <div>
-        <small class="error">{selected_result.message}</small>
-      </div>
-    {/if}
-    <hr />
-    {#if selected_result.content !== undefined}
-      <svelte:component
-        this={selected_result.curr}
-        bind:content={selected_result.content}
-      />
-      <svelte:self source={selected_result} depth={depth + 1} />
-    {/if}
+  
+  <!-- Options for selected transform -->
+  {#if selected_result && selected_result.optionComponent}
+    <svelte:component
+      this={selected_result.optionComponent}
+      bind:content={options[selected_result.from_id]}
+    />
+  {/if}
+  
+  <!-- Error message if transform failed -->
+  {#if selected_result && selected_result.message}
+    <div>
+      <small class="error">{selected_result.message}</small>
+    </div>
   {/if}
 </div>
 
