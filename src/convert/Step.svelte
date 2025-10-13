@@ -4,15 +4,21 @@
   export let index: number;
   export let step: any;
   export let onupdate: (event: any) => void = () => {};
-  
+
   let options = defaultOpts;
-  
+  let textSelection = null; // Track text selection from TextDisplay
+  let previousTransformId = step.transform_id; // Track previous transform for change detection
+
   $: results = analyze(step, options);
   $: selected_result = results.find((r) => r.from_id === step.transform_id);
 
   function handleTransformSelect(transformId: string) {
+    // Detect if this is a transform change (not initial selection)
+    const isTransformChange = previousTransformId !== null && previousTransformId !== transformId;
+
     step.transform_id = transformId;
-    
+    previousTransformId = transformId;
+
     // Find the selected result and apply the transform
     const result = results.find((r) => r.from_id === transformId);
     if (result && result.content !== undefined) {
@@ -20,28 +26,173 @@
         transformId,
         resultContent: result.content,
         resultType: typeof result.content,
-        resultDisplay: result.display
+        resultDisplay: result.display,
+        isTransformChange
       });
-      
+
+      // Store the inverse function with this step for later use
+      step.inverse = result.inverse;
+
       // Pass the result back to parent for creating the next step
       // Include the display component for the next step
-      onupdate({ detail: { 
-        index, 
+      onupdate({ detail: {
+        index,
         result: {
           ...result,
-          resultDisplay: result.display
-        }
+          nextComponent: result.display
+        },
+        clearSubsequent: isTransformChange // Signal to clear subsequent steps if transform changed
       } });
       return;
     }
-    
-    onupdate({ detail: { index } });
+
+    // Transform failed - still pass clearSubsequent flag if transform changed
+    onupdate({ detail: { index, clearSubsequent: isTransformChange } });
   }
 
   function handleContentChange(event: any) {
-    const newContent = event.detail?.content || event.detail;
+    // Use explicit undefined check instead of || to allow empty strings
+    const newContent = event.detail?.content !== undefined ? event.detail.content : event.detail;
     step.content = newContent;
     onupdate({ detail: { index } });
+  }
+
+  // Handle path selection from TreeDisplay
+  function handlePathSelect(event: any) {
+    const { path, value } = event.detail;
+    console.log(`[Step ${index}] Path selected:`, { path, value });
+
+    // Detect if this is a transform change
+    const isTransformChange = previousTransformId !== null && previousTransformId !== 'jsonpath_select';
+
+    // Store the path as options for this step
+    step.options = path;
+
+    // Update local options for jsonpath_select transform
+    const newOptions = {
+      ...options,
+      jsonpath_select: path
+    };
+
+    console.log(`[Step ${index}] Calling analyze with:`, {
+      stepContent: step.content,
+      stepCurr: step.curr,
+      options: newOptions
+    });
+
+    // Re-analyze with the new options to get updated results
+    const newResults = analyze(step, newOptions);
+    console.log(`[Step ${index}] Analyze returned ${newResults.length} results:`, newResults.map(r => r.from_id));
+
+    const result = newResults.find((r) => r.from_id === 'jsonpath_select');
+    console.log(`[Step ${index}] Found jsonpath_select result:`, result);
+
+    if (result && result.content !== undefined) {
+      console.log(`[Step ${index}] JSONPath transform applied:`, {
+        path,
+        resultContent: result.content,
+        resultType: typeof result.content,
+        resultDisplay: result.display,
+        isTransformChange
+      });
+
+      // Set the transform_id and store the inverse
+      step.transform_id = 'jsonpath_select';
+      step.inverse = result.inverse;
+      previousTransformId = 'jsonpath_select';
+
+      // Pass the result back to parent for creating the next step
+      onupdate({ detail: {
+        index,
+        result: {
+          ...result,
+          nextComponent: result.display
+        },
+        clearSubsequent: isTransformChange
+      } });
+    } else {
+      console.error(`[Step ${index}] jsonpath_select result is invalid:`, {
+        resultExists: !!result,
+        contentExists: result?.content !== undefined,
+        result
+      });
+    }
+  }
+
+  // Handle selection change from TextDisplay
+  function handleSelectionChange(event: any) {
+    textSelection = event.detail;
+    console.log(`[Step ${index}] Selection changed:`, textSelection);
+  }
+
+  // Handle extracting the current text selection
+  function handleExtractSelection() {
+    if (textSelection) {
+      handleTextSelect({ detail: textSelection });
+    }
+  }
+
+  // Handle text selection from TextDisplay (when extract is triggered)
+  function handleTextSelect(event: any) {
+    const { text, start, end } = event.detail;
+    console.log(`[Step ${index}] Text selected:`, { text, start, end });
+
+    // Detect if this is a transform change
+    const isTransformChange = previousTransformId !== null && previousTransformId !== 'substring_select';
+
+    // Store the substring range as options for this step
+    const substringOptions = JSON.stringify({ start, end });
+    step.options = substringOptions;
+
+    // Update local options for substring_select transform
+    const newOptions = {
+      ...options,
+      substring_select: substringOptions
+    };
+
+    console.log(`[Step ${index}] Calling analyze for substring with:`, {
+      stepContent: step.content,
+      options: newOptions
+    });
+
+    // Re-analyze with the new options to get updated results
+    const newResults = analyze(step, newOptions);
+    console.log(`[Step ${index}] Analyze returned ${newResults.length} results:`, newResults.map(r => r.from_id));
+
+    const result = newResults.find((r) => r.from_id === 'substring_select');
+    console.log(`[Step ${index}] Found substring_select result:`, result);
+
+    if (result && result.content !== undefined) {
+      console.log(`[Step ${index}] Substring transform applied:`, {
+        start,
+        end,
+        resultContent: result.content,
+        resultType: typeof result.content,
+        resultDisplay: result.display,
+        isTransformChange
+      });
+
+      // Set the transform_id and store the inverse
+      step.transform_id = 'substring_select';
+      step.inverse = result.inverse;
+      previousTransformId = 'substring_select';
+
+      // Pass the result back to parent for creating the next step
+      onupdate({ detail: {
+        index,
+        result: {
+          ...result,
+          nextComponent: result.display
+        },
+        clearSubsequent: isTransformChange
+      } });
+    } else {
+      console.error(`[Step ${index}] substring_select result is invalid:`, {
+        resultExists: !!result,
+        contentExists: result?.content !== undefined,
+        result
+      });
+    }
   }
 </script>
 
@@ -51,11 +202,26 @@
     this={step.curr}
     bind:content={step.content}
     on:content-change={handleContentChange}
+    on:path-select={handlePathSelect}
+    on:selection-change={handleSelectionChange}
   />
   
   <!-- Transform menu -->
   <div class="transform-menu">
-    {#each results as result, idx (idx)}
+    <!-- Extract Selection option (shown when text is selected) -->
+    {#if textSelection}
+      <button
+        class="transform-label extract-selection"
+        class:selected={step.transform_id === 'substring_select'}
+        on:click={handleExtractSelection}
+        title="Extract selected text to new step"
+      >
+        Extract Selection
+      </button>
+    {/if}
+
+    <!-- Regular transforms -->
+    {#each results.filter(r => r.from_id !== 'jsonpath_select' && r.from_id !== 'substring_select') as result, idx (idx)}
       <input
         type="radio"
         bind:group={step.transform_id}
@@ -109,6 +275,14 @@
     border-radius: 0.3em;
     padding: 0.1em;
     margin: 0.2em;
+  }
+
+  .extract-selection {
+    cursor: pointer;
+  }
+
+  .extract-selection.selected {
+    filter: invert(1);
   }
 
   .error {

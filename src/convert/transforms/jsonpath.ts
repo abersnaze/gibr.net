@@ -4,15 +4,16 @@ import TreeDisplay from "../display/TreeDisplay.svelte";
 
 function getValueByPath(obj: any, path: string): any {
   if (!path || path === '.') return obj;
-  
-  const keys = path.split('.');
+
+  // Split and filter out empty strings (from leading/trailing dots)
+  const keys = path.split('.').filter(k => k !== '');
   let current = obj;
-  
+
   for (const key of keys) {
     if (current == null || typeof current !== 'object') {
       throw new Error(`Cannot access property '${key}' on ${typeof current}`);
     }
-    
+
     // Handle array indices
     if (Array.isArray(current)) {
       const index = parseInt(key);
@@ -27,17 +28,18 @@ function getValueByPath(obj: any, path: string): any {
       current = current[key];
     }
   }
-  
+
   return current;
 }
 
 function setValueByPath(obj: any, path: string, value: any): any {
   if (!path || path === '.') return value;
-  
-  const keys = path.split('.');
+
+  // Split and filter out empty strings (from leading/trailing dots)
+  const keys = path.split('.').filter(k => k !== '');
   const result = JSON.parse(JSON.stringify(obj)); // Deep clone
   let current = result;
-  
+
   // Navigate to the parent of the target
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
@@ -75,7 +77,7 @@ const transforms: Record<string, Transform> = {
   jsonpath_select: {
     name: "JSONPath",
     prev: TreeDisplay,
-    optionsComponent: TextDisplay,
+    // No optionsComponent - path is selected by clicking in TreeDisplay
     defaults: ".",
     analyze: (data: any, path: string = ".") => {
       try {

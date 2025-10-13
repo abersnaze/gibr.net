@@ -13,6 +13,7 @@ export interface Step {
   content: Content;
   transform_id: string | null;
   options?: string;
+  inverse?: (content: Content, options?: string) => Content; // Store inverse function
 }
 
 interface Success {

@@ -7,6 +7,7 @@ import { default as json_transforms } from "./json.js";
 import { default as yaml_transforms } from "./yaml.js";
 import { default as jq_transforms } from "./jq.js";
 import { default as jsonpath_transforms } from "./jsonpath.js";
+import { default as substring_transforms } from "./substring.js";
 import { default as uri_transforms } from "./uri.js";
 import { getDisplayComponent, type Transform, type AnalyzeResult } from "../model.js";
 
@@ -19,6 +20,7 @@ const transforms: Record<string, Transform> = Object.assign(
   yaml_transforms,
   jq_transforms,
   jsonpath_transforms,
+  substring_transforms,
   uri_transforms
 );
 
@@ -42,15 +44,15 @@ export function analyze(src: any, options: any): AnalyzeResult[] {
         inverse: 'inverse' in result ? result.inverse : undefined,
         from_name: transform.name,
         from_id: transform_id,
-        curr: undefined,
-        optionComp: transform.optionsComponent,
+        display: undefined,
+        optionComponent: transform.optionsComponent,
         defaults: transform.defaults,
         transform_id: undefined
       };
-      
+
       // Infer display component from content type if successful
       if (analyzeResult.content !== undefined) {
-        analyzeResult.curr = getDisplayComponent(analyzeResult.content);
+        analyzeResult.display = getDisplayComponent(analyzeResult.content);
       }
       
       return analyzeResult;

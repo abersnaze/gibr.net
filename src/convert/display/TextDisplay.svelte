@@ -23,13 +23,16 @@
     const newContent = event.target.value;
     content = newContent; // Update binding immediately for UI responsiveness
     displayContent = newContent; // Also update display content
-    
+
+    // Clear selection when user starts typing
+    currentSelection = null;
+
     console.log('[TextNode] Input detected:', {
       newContent,
       previousContent,
       contentLength: newContent.length
     });
-    
+
     // Debounce the propagation event to avoid excessive processing
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
@@ -45,14 +48,48 @@
       }
     }, 100); // 100ms debounce for faster testing
   }
+
+  // Track current selection
+  let currentSelection = null;
+
+  // Handle text selection - track it and notify parent
+  function handleSelection(event) {
+    const textarea = event.target;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    // Only track if there's an actual selection (not just cursor position)
+    if (start !== end) {
+      const selectedText = textarea.value.substring(start, end);
+      console.log('[TextDisplay] Text selected:', {
+        start,
+        end,
+        selectedText
+      });
+
+      currentSelection = {
+        text: selectedText,
+        start,
+        end
+      };
+    } else {
+      currentSelection = null;
+    }
+
+    // Notify parent of selection change
+    dispatch('selection-change', currentSelection);
+  }
 </script>
 
-<textarea 
-  bind:value={displayContent} 
+<textarea
+  bind:value={displayContent}
   on:input={handleInput}
-  cols="80" 
-  rows="4" 
+  on:mouseup={handleSelection}
+  on:keyup={handleSelection}
+  cols="80"
+  rows="4"
   bind:this={textbox}
+  title="Select text to extract it to a new step"
 ></textarea>
 
 <style>

@@ -19,18 +19,38 @@
 
   // Handle updates from child steps
   function handleUpdate(event) {
-    const { index, result } = event.detail;
+    const { index, result, clearSubsequent } = event.detail;
 
-    console.log("[Convert] Step update from index:", index, result);
+    console.debug("[Convert] Step update from index:", index, result, "clearSubsequent:", clearSubsequent);
+
+    // If clearSubsequent is set but transform failed (no result), clear subsequent steps
+    if (clearSubsequent && !result && index < steps.length - 1) {
+      console.log("[Convert] Transform failed but clearing subsequent steps due to transform change");
+      steps = steps.slice(0, index + 1);
+      steps = [...steps];
+      return;
+    }
 
     // If a transform was selected and we have a result
     if (steps[index].transform_id && result) {
       console.log("[Convert] Transform selected on step", index, "result:", result);
-      
+
+      // If clearSubsequent flag is set, truncate and add single new step
+      if (clearSubsequent && index < steps.length - 1) {
+        console.log("[Convert] Clearing subsequent steps and adding new step");
+        steps = steps.slice(0, index + 1);
+        steps = [...steps, {
+          content: result.content,
+          curr: result.nextComponent || TextDisplay,
+          transform_id: null
+        }];
+        return;
+      }
+
       // If this is the last step, add a new step
       if (index === steps.length - 1) {
         console.log("[Convert] Adding new step with transform result:", result);
-        
+
         steps = [...steps, {
           content: result.content,
           curr: result.nextComponent || TextDisplay,
@@ -39,14 +59,14 @@
       } else {
         // This is an existing step - propagate changes forward
         console.log("[Convert] Propagating changes from step", index, "to subsequent steps");
-        
+
         // Update the next step with the new result
         steps[index + 1] = {
           content: result.content,
           curr: result.nextComponent || TextDisplay,
           transform_id: steps[index + 1].transform_id // Keep existing transform selection
         };
-        
+
         // Now recursively apply transforms to all subsequent steps
         for (let i = index + 1; i < steps.length - 1; i++) {
           if (steps[i].transform_id) {
@@ -65,7 +85,7 @@
             break;
           }
         }
-        
+
         // Trigger reactivity
         steps = [...steps];
       }
@@ -89,7 +109,13 @@
 
   // Helper function to re-apply a transform on a step
   function reapplyTransform(step) {
-    const results = analyze(step, defaultOpts);
+    // Build options object, using step.options if the transform_id matches
+    const opts = { ...defaultOpts };
+    if (step.transform_id && step.options) {
+      opts[step.transform_id] = step.options;
+    }
+
+    const results = analyze(step, opts);
     const result = results.find((r) => r.from_id === step.transform_id);
     return result && result.content !== undefined ? {
       ...result,
@@ -105,30 +131,27 @@
       const nextStep = steps[i + 1];
       
       // Find the transform that was applied to get from step i to step i+1
-      if (currentStep.transform_id) {
-        const results = analyze(currentStep, defaultOpts);
-        const appliedTransform = results.find((r) => r.from_id === currentStep.transform_id);
-        
-        if (appliedTransform && appliedTransform.inverse) {
-          console.log(`[Convert] Applying inverse of ${currentStep.transform_id} to step ${i}`);
-          
-          try {
-            // Apply the inverse transform to get the new content for step i
-            const newContent = appliedTransform.inverse(nextStep.content);
-            steps[i] = {
-              ...currentStep,
-              content: newContent
-            };
-            
-            console.log(`[Convert] Step ${i} content updated via inverse transform:`, newContent);
-          } catch (error) {
-            console.error(`[Convert] Error applying inverse transform for step ${i}:`, error);
-            break; // Stop propagation on error
-          }
-        } else {
-          console.warn(`[Convert] No inverse function available for transform ${currentStep.transform_id}`);
-          break; // Stop if we can't go backwards
+      if (currentStep.transform_id && currentStep.inverse) {
+        console.log(`[Convert] Applying inverse of ${currentStep.transform_id} to step ${i}`);
+
+        try {
+          // Apply the STORED inverse transform to get the new content for step i
+          // Use the stored inverse which has the original data captured
+          // Pass the options so transforms like substring_select know where to insert the content
+          const newContent = currentStep.inverse(nextStep.content, currentStep.options);
+          steps[i] = {
+            ...currentStep,
+            content: newContent
+          };
+
+          console.log(`[Convert] Step ${i} content updated via inverse transform:`, newContent);
+        } catch (error) {
+          console.error(`[Convert] Error applying inverse transform for step ${i}:`, error);
+          break; // Stop propagation on error
         }
+      } else {
+        console.warn(`[Convert] No inverse function available for transform ${currentStep.transform_id}`);
+        break; // Stop if we can't go backwards
       }
     }
     
