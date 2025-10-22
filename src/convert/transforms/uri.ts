@@ -1,6 +1,4 @@
 import { type Transform, type Content } from "../model";
-import TextDisplay from "../display/TextDisplay.svelte";
-import TreeDisplay from "../display/TreeDisplay.svelte";
 
 function parseURI(uriString: string) {
   try {
@@ -87,7 +85,7 @@ function buildURI(components: any) {
 const transforms: Record<string, Transform> = {
   uri_parse: {
     name: "URI Parse",
-    prev: TextDisplay,
+    prev: "TextDisplay",
     analyze: (data: string) => {
       try {
         // Only try to parse if it looks like a URI
@@ -115,7 +113,7 @@ const transforms: Record<string, Transform> = {
   },
   uri_build: {
     name: "URI Build",
-    prev: TreeDisplay,
+    prev: "TreeDisplay",
     analyze: (data: any) => {
       try {
         // Check if the object has the required URI component structure
@@ -145,7 +143,7 @@ const transforms: Record<string, Transform> = {
   },
   uri_decode: {
     name: "URI Decode",
-    prev: TextDisplay,
+    prev: "TextDisplay",
     analyze: (data: string) => {
       try {
         const content = decodeURIComponent(data);
@@ -170,7 +168,7 @@ const transforms: Record<string, Transform> = {
   },
   uri_encode: {
     name: "URI Encode",
-    prev: TextDisplay,
+    prev: "TextDisplay",
     analyze: (data: string) => {
       try {
         const content = encodeURIComponent(data);

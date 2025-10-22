@@ -1,11 +1,9 @@
 import { type Transform, type Content } from "../model";
-import TextDisplay from "../display/TextDisplay.svelte";
-import BinaryDisplay from "../display/BinaryDisplay.svelte";
 
 const transforms: Record<string, Transform> = {
   utf8_decode: {
     name: "UTF-8",
-    prev: BinaryDisplay,
+    prev: "BinaryDisplay",
     analyze: (data: Uint8Array) => {
       try {
         // Type check - ensure data is a Uint8Array
@@ -35,7 +33,7 @@ const transforms: Record<string, Transform> = {
   },
   utf8_encode: {
     name: "UTF-8",
-    prev: TextDisplay,
+    prev: "TextDisplay",
     analyze: (data: string) => {
       try {
         // Type check - ensure data is a string

@@ -2,21 +2,39 @@
   import { afterUpdate, createEventDispatcher } from 'svelte';
 
   export let content;
-  
+
+  import { onMount } from 'svelte';
+
   // Convert Uint8Array to empty string if accidentally passed to TextDisplay
   $: displayContent = content instanceof Uint8Array ? '' : content;
   let textbox;
   let previousContent = content;
-  
-  console.log('[TextNode] Component mounted with content:', content, 'type:', typeof content, 'isUint8Array:', content instanceof Uint8Array);
-  
+
   const dispatch = createEventDispatcher();
 
-  afterUpdate(() => {
-    textbox.style.height = "5px";
-    textbox.style.height = `${textbox.scrollHeight}px`;
+  onMount(() => {
+    console.log('[TextNode] Component mounted with content:', content, 'type:', typeof content, 'isUint8Array:', content instanceof Uint8Array);
   });
-  
+
+  // Threshold for showing truncated view
+  const TRUNCATE_THRESHOLD = 600;
+  const HEAD_CHARS = 300;
+  const TAIL_CHARS = 300;
+
+  let showMore = false;
+
+  $: isLarge = typeof displayContent === 'string' && displayContent.length > TRUNCATE_THRESHOLD;
+  $: truncatedHead = isLarge ? displayContent.substring(0, HEAD_CHARS) : '';
+  $: truncatedTail = isLarge ? displayContent.substring(displayContent.length - TAIL_CHARS) : '';
+
+  afterUpdate(() => {
+    // Only auto-resize when showing full content or content is not large
+    if (textbox && (!isLarge || showMore)) {
+      textbox.style.height = "5px";
+      textbox.style.height = `${textbox.scrollHeight}px`;
+    }
+  });
+
   // Handle manual content changes with debouncing
   let debounceTimer;
   function handleInput(event) {
@@ -47,6 +65,16 @@
         console.log('[TextNode] No change detected, not dispatching event');
       }
     }, 100); // 100ms debounce for faster testing
+  }
+
+  // Handle paste events specifically
+  function handlePaste(event) {
+    // Let the default paste happen, then trigger handleInput
+    setTimeout(() => {
+      if (textbox) {
+        handleInput({ target: textbox });
+      }
+    }, 0);
   }
 
   // Track current selection
@@ -81,21 +109,62 @@
   }
 </script>
 
-<textarea
-  bind:value={displayContent}
-  on:input={handleInput}
-  on:mouseup={handleSelection}
-  on:keyup={handleSelection}
-  cols="80"
-  rows="4"
-  bind:this={textbox}
-  title="Select text to extract it to a new step"
-></textarea>
+{#if isLarge && !showMore}
+  <div class="truncated-view">
+    <pre>{truncatedHead}</pre>
+    <div class="more-or-less">
+      <label>
+        <input type="checkbox" bind:checked={showMore} />
+        show more
+      </label>
+    </div>
+    <pre>{truncatedTail}</pre>
+  </div>
+{:else}
+  {#if isLarge}
+    <div class="more-or-less">
+      <label>
+        <input type="checkbox" bind:checked={showMore} />
+        show less
+      </label>
+    </div>
+  {/if}
+  <textarea
+    bind:value={displayContent}
+    on:input={handleInput}
+    on:paste={handlePaste}
+    on:mouseup={handleSelection}
+    on:keyup={handleSelection}
+    cols="80"
+    rows="4"
+    bind:this={textbox}
+    title="Select text to extract it to a new step"
+  ></textarea>
+{/if}
 
 <style>
   textarea {
     resize: none;
     overflow: hidden;
     min-height: 50px;
+  }
+
+  .truncated-view {
+    display: flex;
+    flex-direction: column;
+    width: 80ch;
+  }
+
+  .truncated-view pre {
+    font-family: inherit;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .more-or-less {
+    user-select: none;
+    text-align: center;
+    margin: 0.5em 0;
   }
 </style>

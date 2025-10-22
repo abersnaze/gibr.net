@@ -1,6 +1,4 @@
 import { type Content, type Transform } from "../model";
-import TextDisplay from "../display/TextDisplay.svelte";
-import BinaryDisplay from "../display/BinaryDisplay.svelte";
 
 function fromHexString(hexString: string): Uint8Array {
   return new Uint8Array(hexString.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
@@ -11,9 +9,9 @@ function toHexString(bytes: Uint8Array): string {
 }
 
 const transforms: Record<string, Transform> = {
-  base16_decode: {
+  b16_decode: {
     name: "Base 16",
-    prev: TextDisplay,
+    prev: "TextDisplay",
     analyze: (data: string) => {
       try {
         const content = fromHexString(data.replace(/[\s]*/g, ""));
@@ -36,9 +34,9 @@ const transforms: Record<string, Transform> = {
       }
     },
   },
-  base16_encode: {
-    name: "Base 16", 
-    prev: BinaryDisplay,
+  b16_encode: {
+    name: "Base 16",
+    prev: "BinaryDisplay",
     analyze: (data: Uint8Array) => {
       try {
         const content = toHexString(data);

@@ -1,9 +1,12 @@
 <script lang="ts">
   import type { BinaryContent } from "../model";
+  import { onMount } from 'svelte';
 
   export let content: BinaryContent;
-  
-  console.log('[BinaryDisplay] Component mounted with content:', content, 'type:', typeof content, 'length:', content?.length);
+
+  onMount(() => {
+    console.log('[BinaryDisplay] Component mounted with content:', content, 'type:', typeof content, 'length:', content?.length);
+  });
 
   // Init for toHex function
   const LUT_HEX_4b = [

@@ -1,10 +1,9 @@
 import { type Transform, type Content } from "../model";
-import TextDisplay from "../display/TextDisplay.svelte";
 
 const transforms: Record<string, Transform> = {
   substring_select: {
     name: "Substring",
-    prev: TextDisplay,
+    prev: "TextDisplay",
     // No optionsComponent - substring is selected by highlighting text in TextDisplay
     defaults: JSON.stringify({ start: 0, end: 0 }),
     analyze: (data: string, options?: string) => {

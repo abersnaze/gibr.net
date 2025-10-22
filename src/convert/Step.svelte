@@ -1,5 +1,9 @@
 <script lang="ts">
   import { analyze, defaultOpts } from "./transforms/index";
+  import { onMount, onDestroy } from 'svelte';
+  import TextDisplay from "./display/TextDisplay.svelte";
+  import BinaryDisplay from "./display/BinaryDisplay.svelte";
+  import TreeDisplay from "./display/TreeDisplay.svelte";
 
   export let index: number;
   export let step: any;
@@ -9,7 +13,34 @@
   let textSelection = null; // Track text selection from TextDisplay
   let previousTransformId = step.transform_id; // Track previous transform for change detection
 
-  $: results = analyze(step, options);
+  // Map display names to component instances
+  const displayComponents = {
+    'TextDisplay': TextDisplay,
+    'BinaryDisplay': BinaryDisplay,
+    'TreeDisplay': TreeDisplay
+  };
+
+  // Get the actual component from the display name
+  $: currentComponent = displayComponents[step.curr] || TextDisplay;
+
+  // Analysis results
+  let results = [];
+
+  onMount(() => {
+    console.log('[Step] Analyzing on main thread');
+    triggerAnalysis();
+  });
+
+  function triggerAnalysis() {
+    console.log('[Step] Running analysis on main thread');
+    results = analyze(step, options);
+  }
+
+  // Reactive trigger for analysis when step content or options change
+  $: if (step && step.content !== undefined && step.curr) {
+    triggerAnalysis();
+  }
+
   $: selected_result = results.find((r) => r.from_id === step.transform_id);
 
   function handleTransformSelect(transformId: string) {
@@ -19,7 +50,7 @@
     step.transform_id = transformId;
     previousTransformId = transformId;
 
-    // Find the selected result and apply the transform
+    // Find the selected result
     const result = results.find((r) => r.from_id === transformId);
     if (result && result.content !== undefined) {
       console.log(`[Step ${index}] Transform applied:`, {
@@ -199,7 +230,7 @@
 <div>
   <!-- Display current step content (editable) -->
   <svelte:component
-    this={step.curr}
+    this={currentComponent}
     bind:content={step.content}
     on:content-change={handleContentChange}
     on:path-select={handlePathSelect}
@@ -233,19 +264,13 @@
       <label
         for={index + "-" + idx + "-transform"}
         class="transform-label"
-        >{Math.round(result.score * 100) + "% " + result.from_name}</label
       >
+        {Math.round(result.score * 100) + "% "}
+        {result.from_name}
+      </label>
     {/each}
   </div>
-  
-  <!-- Options for selected transform -->
-  {#if selected_result && selected_result.optionComponent}
-    <svelte:component
-      this={selected_result.optionComponent}
-      bind:content={options[selected_result.from_id]}
-    />
-  {/if}
-  
+
   <!-- Error message if transform failed -->
   {#if selected_result && selected_result.message}
     <div>

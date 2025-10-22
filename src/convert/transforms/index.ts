@@ -5,11 +5,10 @@ import { default as b58_transforms } from "./base58.js";
 import { default as utf8_transforms } from "./utf8.js";
 import { default as json_transforms } from "./json.js";
 import { default as yaml_transforms } from "./yaml.js";
-import { default as jq_transforms } from "./jq.js";
 import { default as jsonpath_transforms } from "./jsonpath.js";
 import { default as substring_transforms } from "./substring.js";
 import { default as uri_transforms } from "./uri.js";
-import { getDisplayComponent, type Transform, type AnalyzeResult } from "../model.js";
+import { getDisplayName, type Transform, type AnalyzeResult } from "../model.js";
 
 const transforms: Record<string, Transform> = Object.assign(
   b16_transforms,
@@ -18,7 +17,6 @@ const transforms: Record<string, Transform> = Object.assign(
   utf8_transforms,
   json_transforms,
   yaml_transforms,
-  jq_transforms,
   jsonpath_transforms,
   substring_transforms,
   uri_transforms
@@ -30,12 +28,12 @@ export let defaultOpts = Object.fromEntries(
 
 export function analyze(src: any, options: any): AnalyzeResult[] {
   let results = Object.entries(transforms)
-    // only show test for compatable transformes
+    // only show test for compatible transforms - compare display names as strings
     .filter(([transform_id, transform]) => src.curr === transform.prev)
     .map(([transform_id, transform]): AnalyzeResult => {
       // compute the analysis and results of using this convertion
       let result = transform.analyze(src.content, options[transform_id]);
-      
+
       // Create AnalyzeResult with all required properties
       const analyzeResult: AnalyzeResult = {
         score: 'score' in result ? result.score : 0,
@@ -50,11 +48,11 @@ export function analyze(src: any, options: any): AnalyzeResult[] {
         transform_id: undefined
       };
 
-      // Infer display component from content type if successful
+      // Infer display name from content type if successful
       if (analyzeResult.content !== undefined) {
-        analyzeResult.display = getDisplayComponent(analyzeResult.content);
+        analyzeResult.display = getDisplayName(analyzeResult.content);
       }
-      
+
       return analyzeResult;
     });
   let total = results.reduce((sum, result) => sum + result.score, 0);

@@ -1,6 +1,4 @@
 import { type Transform, type Content } from "../model.js";
-import TextDisplay from "../display/TextDisplay.svelte";
-import BinaryDisplay from "../display/BinaryDisplay.svelte";
 
 /*
 https://gist.github.com/enepomnyaschih/72c423f727d395eeaa09697058238727
@@ -102,9 +100,9 @@ export function base64ToBytes(str: string): Uint8Array {
 }
 
 const transforms: Record<string, Transform> = {
-  base64_decode: {
+  b64_decode: {
     name: "Base 64",
-    prev: TextDisplay,
+    prev: "TextDisplay",
     analyze: (data: string) => {
       try {
         // Type check - ensure data is a string
@@ -132,9 +130,9 @@ const transforms: Record<string, Transform> = {
       }
     },
   },
-  base64_encode: {
+  b64_encode: {
     name: "Base 64",
-    prev: BinaryDisplay,
+    prev: "BinaryDisplay",
     analyze: (data: Uint8Array) => {
       try {
         // Type check - ensure data is a Uint8Array

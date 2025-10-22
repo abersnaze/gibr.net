@@ -1,6 +1,4 @@
 import { type Transform, type Content } from "../model";
-import TextDisplay from "../display/TextDisplay.svelte";
-import BinaryDisplay from "../display/BinaryDisplay.svelte";
 
 // Base58 implementation
 const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -99,7 +97,7 @@ const base58 = {
 const transforms: Record<string, Transform> = {
   base58_decode: {
     name: "Base 58",
-    prev: TextDisplay,
+    prev: "TextDisplay",
     analyze: (data: string) => {
       try {
         const content = base58.decode(data);
@@ -124,7 +122,7 @@ const transforms: Record<string, Transform> = {
   },
   base58_encode: {
     name: "Base 58",
-    prev: BinaryDisplay,
+    prev: "BinaryDisplay",
     analyze: (data: Uint8Array) => {
       try {
         const content = base58.encode(data);

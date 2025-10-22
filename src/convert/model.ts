@@ -1,16 +1,17 @@
 import type { Component } from 'svelte';
-import TextDisplay from './display/TextDisplay.svelte';
-import BinaryDisplay from './display/BinaryDisplay.svelte';
-import TreeDisplay from './display/TreeDisplay.svelte';
 
 export type TextContent = string | number | boolean;
 export type BinaryContent = Uint8Array;
 export type TreeContent = object | null;
 export type Content = TextContent | BinaryContent | TreeContent;
-export type Display = typeof TextDisplay | typeof BinaryDisplay | typeof TreeDisplay;
+
+// Display types as string literals instead of component references
+export type DisplayName = 'TextDisplay' | 'BinaryDisplay' | 'TreeDisplay';
 export type OptionComponent = Component<{ content: string }>;
+
 export interface Step {
   content: Content;
+  curr: DisplayName; // Changed from component to string
   transform_id: string | null;
   options?: string;
   inverse?: (content: Content, options?: string) => Content; // Store inverse function
@@ -31,7 +32,7 @@ export type Result = Success | Failure;
 // Extended result type returned by the analyze function in index.ts
 export interface AnalyzeResult {
   score: number;
-  display?: Display;
+  display?: DisplayName; // Changed from component to string
   content?: Content;
   message?: any;
   inverse?: (content: Content, options?: string) => Content;
@@ -44,19 +45,19 @@ export interface AnalyzeResult {
 
 export interface Transform {
   name: string;
-  prev: Display;
+  prev: DisplayName; // Changed from component to string
   analyze: (input: any, options?: string) => Result;
   optionsComponent?: Component<{ props: string }>;
   defaults?: string;
 }
 
-// Helper function to infer display component from content type
-export function getDisplayComponent(content: Content): Display {
+// Helper function to infer display name from content type
+export function getDisplayName(content: Content): DisplayName {
   if (typeof content === 'string' || typeof content === 'number' || typeof content === 'boolean') {
-    return TextDisplay;
+    return 'TextDisplay';
   } else if (content instanceof Uint8Array) {
-    return BinaryDisplay;
+    return 'BinaryDisplay';
   } else {
-    return TreeDisplay;
+    return 'TreeDisplay';
   }
 }

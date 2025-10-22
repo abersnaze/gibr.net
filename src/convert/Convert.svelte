@@ -2,17 +2,29 @@
   import Logo from "../home/Logo.svelte";
   import Step from "./Step.svelte";
   import TextDisplay from "./display/TextDisplay.svelte";
-  import type { Content, Display } from "./model";
+  import BinaryDisplay from "./display/BinaryDisplay.svelte";
+  import TreeDisplay from "./display/TreeDisplay.svelte";
+  import type { Content, DisplayName } from "./model";
   import { analyze, defaultOpts } from "./transforms/index";
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
 
-  document.title = "GIBR.net: Convert Things";
+  if (browser) {
+    document.title = "GIBR.net: Convert Things";
+  }
+
+  // Map display names to component instances
+  const displayComponents = {
+    'TextDisplay': TextDisplay,
+    'BinaryDisplay': BinaryDisplay,
+    'TreeDisplay': TreeDisplay
+  };
 
   // Track the entire conversion chain for bidirectional editing
   let steps = [
     {
-      // content: "", // Start with empty content
-      content: '{"id": "foo", "payload": "YXNkZg=="}' as Content, // Example JSON input so i don't have to type it every reload
-      curr: TextDisplay as Display,
+      content: "", // Start with empty content
+      curr: "TextDisplay" as DisplayName,
       transform_id: null, // transform_id to the next step
     },
   ];
@@ -41,7 +53,7 @@
         steps = steps.slice(0, index + 1);
         steps = [...steps, {
           content: result.content,
-          curr: result.nextComponent || TextDisplay,
+          curr: result.nextComponent || "TextDisplay",
           transform_id: null
         }];
         return;
@@ -53,7 +65,7 @@
 
         steps = [...steps, {
           content: result.content,
-          curr: result.nextComponent || TextDisplay,
+          curr: result.nextComponent || "TextDisplay",
           transform_id: null
         }];
       } else {
@@ -63,7 +75,7 @@
         // Update the next step with the new result
         steps[index + 1] = {
           content: result.content,
-          curr: result.nextComponent || TextDisplay,
+          curr: result.nextComponent || "TextDisplay",
           transform_id: steps[index + 1].transform_id // Keep existing transform selection
         };
 
@@ -75,7 +87,7 @@
             if (nextStepResult) {
               steps[i + 1] = {
                 content: nextStepResult.content,
-                curr: nextStepResult.nextComponent || TextDisplay,
+                curr: nextStepResult.nextComponent || "TextDisplay",
                 transform_id: steps[i + 1].transform_id
               };
             }
@@ -176,14 +188,14 @@
           console.log(`[Convert] Step ${i} has empty content, clearing subsequent steps`);
           // Clear subsequent steps when content is empty
           for (let j = i + 1; j < steps.length; j++) {
-            // Set appropriate empty content based on the existing component type
+            // Set appropriate empty content based on the existing display type
             let emptyContent;
-            if (steps[j].curr === TextDisplay || steps[j].curr?.name === 'TextDisplay') {
+            if (steps[j].curr === 'TextDisplay') {
               emptyContent = ''; // Empty string for TextDisplay
             } else {
               emptyContent = new Uint8Array(0); // Empty Uint8Array for BinaryDisplay
             }
-            
+
             steps[j] = {
               ...steps[j],
               content: emptyContent,
@@ -198,15 +210,15 @@
           steps[i + 1] = {
             ...steps[i + 1],
             content: nextStepResult.content,
-            curr: nextStepResult.nextComponent || TextDisplay
+            curr: nextStepResult.nextComponent || "TextDisplay"
           };
         } else {
           console.log(`[Convert] Transform failed on step ${i}, clearing subsequent steps`);
           // Transform failed - clear subsequent steps
           for (let j = i + 1; j < steps.length; j++) {
-            // Set appropriate empty content based on the existing component type
+            // Set appropriate empty content based on the existing display type
             let emptyContent;
-            if (steps[j].curr === TextDisplay || steps[j].curr?.name === 'TextDisplay') {
+            if (steps[j].curr === 'TextDisplay') {
               emptyContent = ''; // Empty string for TextDisplay
             } else {
               emptyContent = new Uint8Array(0); // Empty Uint8Array for BinaryDisplay

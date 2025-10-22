@@ -1,6 +1,4 @@
 import { type Transform, type Content } from "../model";
-import TextDisplay from "../display/TextDisplay.svelte";
-import TreeDisplay from "../display/TreeDisplay.svelte";
 
 function getValueByPath(obj: any, path: string): any {
   if (!path || path === '.') return obj;
@@ -76,7 +74,7 @@ function setValueByPath(obj: any, path: string, value: any): any {
 const transforms: Record<string, Transform> = {
   jsonpath_select: {
     name: "JSONPath",
-    prev: TreeDisplay,
+    prev: "TreeDisplay",
     // No optionsComponent - path is selected by clicking in TreeDisplay
     defaults: ".",
     analyze: (data: any, path: string = ".") => {
@@ -85,7 +83,24 @@ const transforms: Record<string, Transform> = {
         
         // Provide the inverse function: selected value -> original object with updated value
         const inverse = (content: Content, options?: string) => {
-          return setValueByPath(data, path, content);
+          // Get the original value to determine its type
+          const originalValue = getValueByPath(data, path);
+          let parsedValue = content;
+
+          // If the new content is a string, try to convert it to match the original type
+          if (typeof content === 'string' && typeof originalValue === 'number') {
+            // Original was a number, try to parse the string as a number
+            const num = Number(content);
+            if (!isNaN(num)) {
+              parsedValue = num;
+            }
+          } else if (typeof content === 'string' && typeof originalValue === 'boolean') {
+            // Original was a boolean, parse the string as boolean
+            if (content === 'true') parsedValue = true;
+            else if (content === 'false') parsedValue = false;
+          }
+
+          return setValueByPath(data, path, parsedValue);
         };
         
         return {

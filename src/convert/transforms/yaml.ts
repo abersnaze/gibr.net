@@ -1,12 +1,10 @@
 import { type Transform, type Content } from "../model";
-import TextDisplay from "../display/TextDisplay.svelte";
-import TreeDisplay from "../display/TreeDisplay.svelte";
 import yaml from "yaml";
 
 const transforms: Record<string, Transform> = {
   yaml_stringify: {
     name: "YAML",
-    prev: TreeDisplay,
+    prev: "TreeDisplay",
     analyze: (data: any) => {
       try {
         const content = yaml.stringify(data);
@@ -35,7 +33,7 @@ const transforms: Record<string, Transform> = {
   },
   yaml_parse: {
     name: "YAML",
-    prev: TextDisplay,
+    prev: "TextDisplay",
     analyze: (data: string) => {
       try {
         const score = data.includes("---\n") ? 2.0 : 0.75;
