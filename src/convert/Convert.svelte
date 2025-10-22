@@ -37,7 +37,6 @@
 
     // If clearSubsequent is set but transform failed (no result), clear subsequent steps
     if (clearSubsequent && !result && index < steps.length - 1) {
-      console.log("[Convert] Transform failed but clearing subsequent steps due to transform change");
       steps = steps.slice(0, index + 1);
       steps = [...steps];
       return;
@@ -45,11 +44,8 @@
 
     // If a transform was selected and we have a result
     if (steps[index].transform_id && result) {
-      console.log("[Convert] Transform selected on step", index, "result:", result);
-
       // If clearSubsequent flag is set, truncate and add single new step
       if (clearSubsequent && index < steps.length - 1) {
-        console.log("[Convert] Clearing subsequent steps and adding new step");
         steps = steps.slice(0, index + 1);
         steps = [...steps, {
           content: result.content,
@@ -61,8 +57,6 @@
 
       // If this is the last step, add a new step
       if (index === steps.length - 1) {
-        console.log("[Convert] Adding new step with transform result:", result);
-
         steps = [...steps, {
           content: result.content,
           curr: result.nextComponent || "TextDisplay",
@@ -70,8 +64,6 @@
         }];
       } else {
         // This is an existing step - propagate changes forward
-        console.log("[Convert] Propagating changes from step", index, "to subsequent steps");
-
         // Update the next step with the new result
         steps[index + 1] = {
           content: result.content,
@@ -105,11 +97,9 @@
       // Content was edited without transform selection
       if (index > 0) {
         // Apply inverse transforms backwards for steps > 0
-        console.log("[Convert] Content edited on step", index, "applying inverse transforms backwards");
         applyInverseTransforms(index);
       } else if (index === 0 && steps.length > 1) {
         // Step 0 content changed - propagate forward through the chain
-        console.log("[Convert] Step 0 content changed, propagating forward");
         propagateForward(0);
         steps = [...steps];
       } else {
@@ -144,8 +134,6 @@
       
       // Find the transform that was applied to get from step i to step i+1
       if (currentStep.transform_id && currentStep.inverse) {
-        console.log(`[Convert] Applying inverse of ${currentStep.transform_id} to step ${i}`);
-
         try {
           // Apply the STORED inverse transform to get the new content for step i
           // Use the stored inverse which has the original data captured
@@ -155,8 +143,6 @@
             ...currentStep,
             content: newContent
           };
-
-          console.log(`[Convert] Step ${i} content updated via inverse transform:`, newContent);
         } catch (error) {
           console.error(`[Convert] Error applying inverse transform for step ${i}:`, error);
           break; // Stop propagation on error
@@ -169,7 +155,6 @@
     
     // Also propagate forward from the edited step if there are more steps
     if (startIndex < steps.length - 1) {
-      console.log("[Convert] Also propagating forward from edited step", startIndex);
       propagateForward(startIndex);
     }
     
@@ -181,11 +166,11 @@
   function propagateForward(startIndex) {
     for (let i = startIndex; i < steps.length - 1; i++) {
       const currentStep = steps[i];
+
       if (currentStep.transform_id) {
         // Check if current step has empty or invalid content
-        if (!currentStep.content || 
+        if (!currentStep.content ||
             (typeof currentStep.content === 'string' && currentStep.content.trim() === '')) {
-          console.log(`[Convert] Step ${i} has empty content, clearing subsequent steps`);
           // Clear subsequent steps when content is empty
           for (let j = i + 1; j < steps.length; j++) {
             // Set appropriate empty content based on the existing display type
@@ -206,6 +191,7 @@
         }
 
         const nextStepResult = reapplyTransform(currentStep);
+
         if (nextStepResult && nextStepResult.content !== undefined) {
           steps[i + 1] = {
             ...steps[i + 1],
@@ -213,7 +199,6 @@
             curr: nextStepResult.nextComponent || "TextDisplay"
           };
         } else {
-          console.log(`[Convert] Transform failed on step ${i}, clearing subsequent steps`);
           // Transform failed - clear subsequent steps
           for (let j = i + 1; j < steps.length; j++) {
             // Set appropriate empty content based on the existing display type

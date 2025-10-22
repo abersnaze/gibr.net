@@ -12,10 +12,6 @@
 
   const dispatch = createEventDispatcher();
 
-  onMount(() => {
-    console.log('[TextNode] Component mounted with content:', content, 'type:', typeof content, 'isUint8Array:', content instanceof Uint8Array);
-  });
-
   // Threshold for showing truncated view
   const TRUNCATE_THRESHOLD = 600;
   const HEAD_CHARS = 300;

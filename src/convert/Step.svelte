@@ -1,17 +1,42 @@
 <script lang="ts">
-  import { analyze, defaultOpts } from "./transforms/index";
+  import { defaultOpts } from "./transforms/index";
   import { onMount, onDestroy } from 'svelte';
   import TextDisplay from "./display/TextDisplay.svelte";
   import BinaryDisplay from "./display/BinaryDisplay.svelte";
   import TreeDisplay from "./display/TreeDisplay.svelte";
+  import { getDisplayName } from "./model";
+
+  // Import all transforms to get the list
+  import base16 from "./transforms/base16";
+  import base58 from "./transforms/base58";
+  import base64 from "./transforms/base64";
+  import json from "./transforms/json";
+  import jsonpath from "./transforms/jsonpath";
+  import substring from "./transforms/substring";
+  import uri from "./transforms/uri";
+  import utf8 from "./transforms/utf8";
+  import yaml from "./transforms/yaml";
+
+  // Combine all transforms
+  const allTransforms = {
+    ...base16,
+    ...base58,
+    ...base64,
+    ...json,
+    ...jsonpath,
+    ...substring,
+    ...uri,
+    ...utf8,
+    ...yaml,
+  };
 
   export let index: number;
   export let step: any;
   export let onupdate: (event: any) => void = () => {};
 
   let options = defaultOpts;
-  let textSelection = null; // Track text selection from TextDisplay
-  let previousTransformId = step.transform_id; // Track previous transform for change detection
+  let textSelection = null;
+  let previousTransformId = step.transform_id;
 
   // Map display names to component instances
   const displayComponents = {
@@ -23,116 +48,279 @@
   // Get the actual component from the display name
   $: currentComponent = displayComponents[step.curr] || TextDisplay;
 
-  // Analysis results
-  let results = [];
+  // Worker state tracking
+  // State: 'pending' | 'running' | 'complete' | 'canceled' | 'error'
+  let workerStates = new Map(); // transformId -> { state, worker, result, message, requestId }
+  let requestCounter = 0;
+
+  // Get compatible transforms for the current step
+  $: compatibleTransforms = Object.entries(allTransforms)
+    .filter(([_, transform]) => step.curr === transform.prev)
+    .map(([id, transform]) => ({ id, name: transform.name }));
+
+  // Track previous values to detect actual changes
+  let previousContent = step.content;
+  let previousCurr = step.curr;
+
+  // Reactive trigger to restart analysis when step content or display type changes
+  // Do NOT restart when only transform_id changes
+  $: if (step && step.content !== undefined && step.curr) {
+    if (step.content !== previousContent || step.curr !== previousCurr) {
+      previousContent = step.content;
+      previousCurr = step.curr;
+      restartAnalysis();
+    }
+  }
+
+  // Selected result
+  $: selected_result = (() => {
+    if (!step.transform_id) return null;
+    const state = workerStates.get(step.transform_id);
+    return state?.result;
+  })();
 
   onMount(() => {
-    console.log('[Step] Analyzing on main thread');
-    triggerAnalysis();
+    // Initialize tracking variables
+    previousContent = step.content;
+    previousCurr = step.curr;
+    restartAnalysis();
   });
 
-  function triggerAnalysis() {
-    console.log('[Step] Running analysis on main thread');
-    results = analyze(step, options);
+  onDestroy(() => {
+    // Terminate all workers
+    for (const [_, state] of workerStates.entries()) {
+      if (state.worker) {
+        state.worker.terminate();
+      }
+    }
+  });
+
+  function restartAnalysis() {
+    // Terminate existing workers
+    for (const [_, state] of workerStates.entries()) {
+      if (state.worker) {
+        state.worker.terminate();
+      }
+    }
+
+    // Clear state
+    workerStates.clear();
+    workerStates = new Map();
+
+    // Start analysis for each compatible transform
+    for (const { id } of compatibleTransforms) {
+      startWorker(id);
+    }
   }
 
-  // Reactive trigger for analysis when step content or options change
-  $: if (step && step.content !== undefined && step.curr) {
-    triggerAnalysis();
-  }
+  function startWorker(transformId: string) {
+    const requestId = ++requestCounter;
 
-  $: selected_result = results.find((r) => r.from_id === step.transform_id);
+    try {
+      // Create worker
+      const worker = new Worker(
+        new URL('./transform.worker.js', import.meta.url),
+        { type: 'module' }
+      );
 
-  function handleTransformSelect(transformId: string) {
-    // Detect if this is a transform change (not initial selection)
-    const isTransformChange = previousTransformId !== null && previousTransformId !== transformId;
+      // Initialize state
+      workerStates.set(transformId, {
+        state: 'pending',
+        worker,
+        result: null,
+        message: 'Starting analysis...',
+        requestId
+      });
+      workerStates = new Map(workerStates);
 
-    step.transform_id = transformId;
-    previousTransformId = transformId;
+      // Handle messages from worker
+      worker.onmessage = (event) => {
+        const { requestId: msgRequestId, status, result, message, error } = event.data;
 
-    // Find the selected result
-    const result = results.find((r) => r.from_id === transformId);
-    if (result && result.content !== undefined) {
-      console.log(`[Step ${index}] Transform applied:`, {
+        // Ignore messages from old requests
+        const currentState = workerStates.get(transformId);
+        if (!currentState || currentState.requestId !== msgRequestId) {
+          return;
+        }
+
+        if (status === 'running') {
+          workerStates.set(transformId, {
+            ...currentState,
+            state: 'running',
+            message
+          });
+          workerStates = new Map(workerStates);
+        } else if (status === 'complete') {
+          try {
+            // Recreate the inverse function from the main thread
+            const transform = allTransforms[transformId];
+            let inverse = null;
+            if (result.hasInverse && transform) {
+              // Re-run the transform to get the inverse function
+              const freshResult = transform.analyze(step.content, options[transformId]);
+              inverse = freshResult.inverse;
+            }
+
+            const analyzeResult = {
+              score: result.score,
+              content: result.content,
+              message: result.message,
+              inverse,
+              from_name: transform?.name || transformId,
+              from_id: transformId,
+              display: result.content !== undefined ? getDisplayName(result.content) : undefined
+            };
+
+            workerStates.set(transformId, {
+              ...currentState,
+              state: 'complete',
+              result: analyzeResult,
+              message: null
+            });
+            workerStates = new Map(workerStates);
+
+            // Terminate worker
+            worker.terminate();
+          } catch (error) {
+            console.error(`[Step ${index}] Error processing worker result for ${transformId}:`, error);
+            workerStates.set(transformId, {
+              ...currentState,
+              state: 'error',
+              result: {
+                score: 0,
+                from_name: allTransforms[transformId]?.name || transformId,
+                from_id: transformId,
+                message: `Error processing result: ${error.message}`
+              },
+              message: `Error processing result: ${error.message}`
+            });
+            workerStates = new Map(workerStates);
+            worker.terminate();
+          }
+        } else if (status === 'error') {
+          workerStates.set(transformId, {
+            ...currentState,
+            state: 'error',
+            result: {
+              score: 0,
+              from_name: allTransforms[transformId]?.name || transformId,
+              from_id: transformId,
+              message: error || message
+            },
+            message: error || message
+          });
+          workerStates = new Map(workerStates);
+
+          // Terminate worker
+          worker.terminate();
+        }
+      };
+
+      worker.onerror = (error) => {
+        console.error(`[Step] Worker error for ${transformId}:`, error);
+        const currentState = workerStates.get(transformId);
+        if (currentState && currentState.requestId === requestId) {
+          workerStates.set(transformId, {
+            ...currentState,
+            state: 'error',
+            result: {
+              score: 0,
+              from_name: allTransforms[transformId]?.name || transformId,
+              from_id: transformId,
+              message: `Worker error: ${error.message}`
+            },
+            message: `Worker error: ${error.message}`
+          });
+          workerStates = new Map(workerStates);
+        }
+        worker.terminate();
+      };
+
+      // Send message to worker
+      worker.postMessage({
         transformId,
-        resultContent: result.content,
-        resultType: typeof result.content,
-        resultDisplay: result.display,
-        isTransformChange
+        input: step.content,
+        options: options[transformId],
+        requestId
       });
 
-      // Store the inverse function with this step for later use
-      step.inverse = result.inverse;
-
-      // Pass the result back to parent for creating the next step
-      // Include the display component for the next step
-      onupdate({ detail: {
-        index,
+    } catch (error) {
+      console.error(`[Step] Failed to create worker for ${transformId}:`, error);
+      workerStates.set(transformId, {
+        state: 'error',
+        worker: null,
         result: {
-          ...result,
-          nextComponent: result.display
+          score: 0,
+          from_name: allTransforms[transformId]?.name || transformId,
+          from_id: transformId,
+          message: `Failed to create worker: ${error.message}`
         },
-        clearSubsequent: isTransformChange // Signal to clear subsequent steps if transform changed
-      } });
+        message: `Failed to create worker: ${error.message}`,
+        requestId
+      });
+      workerStates = new Map(workerStates);
+    }
+  }
+
+  function cancelWorker(transformId: string) {
+    const state = workerStates.get(transformId);
+    if (!state) return;
+
+    // Terminate worker
+    if (state.worker) {
+      state.worker.terminate();
+    }
+
+    // Update state to canceled
+    workerStates.set(transformId, {
+      ...state,
+      state: 'canceled',
+      result: {
+        score: 0,
+        from_name: allTransforms[transformId]?.name || transformId,
+        from_id: transformId,
+        message: `Analysis canceled. Last status: ${state.message || 'pending'}`
+      },
+      message: `Canceled: ${state.message || 'pending'}`,
+      worker: null
+    });
+    workerStates = new Map(workerStates);
+  }
+
+  function retryWorker(transformId: string) {
+    startWorker(transformId);
+  }
+
+  function handleWorkerClick(transformId: string) {
+    const state = workerStates.get(transformId);
+    if (!state) return;
+
+    if (state.state === 'pending' || state.state === 'running') {
+      // Cancel the worker
+      cancelWorker(transformId);
+    } else if (state.state === 'canceled' || state.state === 'error') {
+      // Retry the worker
+      retryWorker(transformId);
+    }
+  }
+
+  function handleTransformSelect(transformId: string) {
+    const state = workerStates.get(transformId);
+    if (!state || state.state !== 'complete') {
       return;
     }
 
-    // Transform failed - still pass clearSubsequent flag if transform changed
-    onupdate({ detail: { index, clearSubsequent: isTransformChange } });
-  }
+    const isTransformChange = previousTransformId !== null && previousTransformId !== transformId;
+    step.transform_id = transformId;
+    previousTransformId = transformId;
 
-  function handleContentChange(event: any) {
-    // Use explicit undefined check instead of || to allow empty strings
-    const newContent = event.detail?.content !== undefined ? event.detail.content : event.detail;
-    step.content = newContent;
-    onupdate({ detail: { index } });
-  }
-
-  // Handle path selection from TreeDisplay
-  function handlePathSelect(event: any) {
-    const { path, value } = event.detail;
-    console.log(`[Step ${index}] Path selected:`, { path, value });
-
-    // Detect if this is a transform change
-    const isTransformChange = previousTransformId !== null && previousTransformId !== 'jsonpath_select';
-
-    // Store the path as options for this step
-    step.options = path;
-
-    // Update local options for jsonpath_select transform
-    const newOptions = {
-      ...options,
-      jsonpath_select: path
-    };
-
-    console.log(`[Step ${index}] Calling analyze with:`, {
-      stepContent: step.content,
-      stepCurr: step.curr,
-      options: newOptions
-    });
-
-    // Re-analyze with the new options to get updated results
-    const newResults = analyze(step, newOptions);
-    console.log(`[Step ${index}] Analyze returned ${newResults.length} results:`, newResults.map(r => r.from_id));
-
-    const result = newResults.find((r) => r.from_id === 'jsonpath_select');
-    console.log(`[Step ${index}] Found jsonpath_select result:`, result);
+    const result = state.result;
 
     if (result && result.content !== undefined) {
-      console.log(`[Step ${index}] JSONPath transform applied:`, {
-        path,
-        resultContent: result.content,
-        resultType: typeof result.content,
-        resultDisplay: result.display,
-        isTransformChange
-      });
-
-      // Set the transform_id and store the inverse
-      step.transform_id = 'jsonpath_select';
+      // Store the inverse function
       step.inverse = result.inverse;
-      previousTransformId = 'jsonpath_select';
 
-      // Pass the result back to parent for creating the next step
+      // Pass the result back to parent
       onupdate({ detail: {
         index,
         result: {
@@ -141,90 +329,167 @@
         },
         clearSubsequent: isTransformChange
       } });
-    } else {
-      console.error(`[Step ${index}] jsonpath_select result is invalid:`, {
-        resultExists: !!result,
-        contentExists: result?.content !== undefined,
-        result
-      });
+      return;
+    }
+
+    // Transform failed
+    onupdate({ detail: { index, clearSubsequent: isTransformChange } });
+  }
+
+  function handleContentChange(event: any) {
+    const newContent = event.detail?.content !== undefined ? event.detail.content : event.detail;
+    step.content = newContent;
+    onupdate({ detail: { index } });
+  }
+
+  function handlePathSelect(event: any) {
+    const { path, value } = event.detail;
+    console.log(`[Step ${index}] Path selected:`, { path, value });
+
+    const isTransformChange = previousTransformId !== null && previousTransformId !== 'jsonpath_select';
+
+    step.options = path;
+
+    const newOptions = {
+      ...options,
+      jsonpath_select: path
+    };
+
+    // Run jsonpath_select synchronously for immediate feedback
+    const transform = allTransforms['jsonpath_select'];
+    if (transform) {
+      const result = transform.analyze(step.content, newOptions.jsonpath_select);
+
+      if (result && result.content !== undefined) {
+        console.log(`[Step ${index}] JSONPath transform applied:`, {
+          path,
+          resultContent: result.content,
+          resultType: typeof result.content,
+          isTransformChange
+        });
+
+        step.transform_id = 'jsonpath_select';
+        step.inverse = result.inverse;
+        previousTransformId = 'jsonpath_select';
+
+        const display = getDisplayName(result.content);
+
+        onupdate({ detail: {
+          index,
+          result: {
+            score: result.score,
+            content: result.content,
+            inverse: result.inverse,
+            from_name: transform.name,
+            from_id: 'jsonpath_select',
+            display,
+            nextComponent: display
+          },
+          clearSubsequent: isTransformChange
+        } });
+      }
     }
   }
 
-  // Handle selection change from TextDisplay
   function handleSelectionChange(event: any) {
     textSelection = event.detail;
     console.log(`[Step ${index}] Selection changed:`, textSelection);
   }
 
-  // Handle extracting the current text selection
   function handleExtractSelection() {
     if (textSelection) {
       handleTextSelect({ detail: textSelection });
     }
   }
 
-  // Handle text selection from TextDisplay (when extract is triggered)
   function handleTextSelect(event: any) {
     const { text, start, end } = event.detail;
     console.log(`[Step ${index}] Text selected:`, { text, start, end });
 
-    // Detect if this is a transform change
     const isTransformChange = previousTransformId !== null && previousTransformId !== 'substring_select';
 
-    // Store the substring range as options for this step
     const substringOptions = JSON.stringify({ start, end });
     step.options = substringOptions;
 
-    // Update local options for substring_select transform
     const newOptions = {
       ...options,
       substring_select: substringOptions
     };
 
-    console.log(`[Step ${index}] Calling analyze for substring with:`, {
-      stepContent: step.content,
-      options: newOptions
-    });
+    // Run substring_select synchronously
+    const transform = allTransforms['substring_select'];
+    if (transform) {
+      const result = transform.analyze(step.content, newOptions.substring_select);
 
-    // Re-analyze with the new options to get updated results
-    const newResults = analyze(step, newOptions);
-    console.log(`[Step ${index}] Analyze returned ${newResults.length} results:`, newResults.map(r => r.from_id));
+      if (result && result.content !== undefined) {
+        console.log(`[Step ${index}] Substring transform applied:`, {
+          start,
+          end,
+          resultContent: result.content,
+          resultType: typeof result.content,
+          isTransformChange
+        });
 
-    const result = newResults.find((r) => r.from_id === 'substring_select');
-    console.log(`[Step ${index}] Found substring_select result:`, result);
+        step.transform_id = 'substring_select';
+        step.inverse = result.inverse;
+        previousTransformId = 'substring_select';
 
-    if (result && result.content !== undefined) {
-      console.log(`[Step ${index}] Substring transform applied:`, {
-        start,
-        end,
-        resultContent: result.content,
-        resultType: typeof result.content,
-        resultDisplay: result.display,
-        isTransformChange
-      });
+        const display = getDisplayName(result.content);
 
-      // Set the transform_id and store the inverse
-      step.transform_id = 'substring_select';
-      step.inverse = result.inverse;
-      previousTransformId = 'substring_select';
-
-      // Pass the result back to parent for creating the next step
-      onupdate({ detail: {
-        index,
-        result: {
-          ...result,
-          nextComponent: result.display
-        },
-        clearSubsequent: isTransformChange
-      } });
-    } else {
-      console.error(`[Step ${index}] substring_select result is invalid:`, {
-        resultExists: !!result,
-        contentExists: result?.content !== undefined,
-        result
-      });
+        onupdate({ detail: {
+          index,
+          result: {
+            score: result.score,
+            content: result.content,
+            inverse: result.inverse,
+            from_name: transform.name,
+            from_id: 'substring_select',
+            display,
+            nextComponent: display
+          },
+          clearSubsequent: isTransformChange
+        } });
+      }
     }
   }
+
+  // Get sorted results for display
+  $: sortedResults = (() => {
+    const results = Array.from(workerStates.entries())
+      .map(([id, state]) => ({
+        id,
+        state: state.state,
+        result: state.result,
+        message: state.message
+      }))
+      .filter(item => item.id !== 'jsonpath_select' && item.id !== 'substring_select');
+
+    // Calculate total score for normalization
+    const total = results
+      .filter(item => item.state === 'complete' && item.result)
+      .reduce((sum, item) => sum + (item.result?.score || 0), 0);
+
+    // Normalize scores
+    if (total > 0) {
+      results.forEach(item => {
+        if (item.state === 'complete' && item.result) {
+          item.result.score = item.result.score / total;
+        }
+      });
+    }
+
+    // Sort by score (complete items first, then by score)
+    results.sort((a, b) => {
+      if (a.state === 'complete' && b.state !== 'complete') return -1;
+      if (a.state !== 'complete' && b.state === 'complete') return 1;
+      if (a.state === 'complete' && b.state === 'complete') {
+        return (b.result?.score || 0) - (a.result?.score || 0);
+      }
+      return 0;
+    });
+
+    return results;
+  })();
 </script>
 
 <div>
@@ -236,7 +501,7 @@
     on:path-select={handlePathSelect}
     on:selection-change={handleSelectionChange}
   />
-  
+
   <!-- Transform menu -->
   <div class="transform-menu">
     <!-- Extract Selection option (shown when text is selected) -->
@@ -252,29 +517,58 @@
     {/if}
 
     <!-- Regular transforms -->
-    {#each results.filter(r => r.from_id !== 'jsonpath_select' && r.from_id !== 'substring_select') as result, idx (idx)}
-      <input
-        type="radio"
-        bind:group={step.transform_id}
-        id={index + "-" + idx + "-transform"}
-        value={result.from_id}
-        class="transform-radio"
-        on:change={() => handleTransformSelect(result.from_id)}
-      />
-      <label
-        for={index + "-" + idx + "-transform"}
-        class="transform-label"
-      >
-        {Math.round(result.score * 100) + "% "}
-        {result.from_name}
-      </label>
+    {#each sortedResults as item (item.id)}
+      {#if item.state === 'complete'}
+        <input
+          type="radio"
+          bind:group={step.transform_id}
+          id={index + "-" + item.id + "-transform"}
+          value={item.id}
+          class="transform-radio"
+          on:change={() => handleTransformSelect(item.id)}
+        />
+        <label
+          for={index + "-" + item.id + "-transform"}
+          class="transform-label"
+        >
+          {Math.round((item.result?.score || 0) * 100) + "% "}
+          {item.result?.from_name || item.id}
+        </label>
+      {:else if item.state === 'pending' || item.state === 'running'}
+        <button
+          class="transform-label spinner"
+          on:click={() => handleWorkerClick(item.id)}
+          title="Click to cancel"
+        >
+          <span class="spinner-icon">◒</span>
+          {item.result?.from_name || item.id}
+        </button>
+      {:else if item.state === 'canceled'}
+        <button
+          class="transform-label canceled"
+          on:click={() => handleWorkerClick(item.id)}
+          title="Click to retry: {item.message}"
+        >
+          <span class="canceled-icon">⏸</span>
+          {item.result?.from_name || item.id}
+        </button>
+      {:else if item.state === 'error'}
+        <button
+          class="transform-label error"
+          on:click={() => handleWorkerClick(item.id)}
+          title="Click to retry: {item.message}"
+        >
+          <span class="error-icon">⚠</span>
+          {item.result?.from_name || item.id}
+        </button>
+      {/if}
     {/each}
   </div>
 
   <!-- Error message if transform failed -->
   {#if selected_result && selected_result.message}
     <div>
-      <small class="error">{selected_result.message}</small>
+      <small class="error-message">{selected_result.message}</small>
     </div>
   {/if}
 </div>
@@ -298,8 +592,50 @@
     background-color: white;
     border: solid thin;
     border-radius: 0.3em;
-    padding: 0.1em;
+    padding: 0.1em 0.5em;
     margin: 0.2em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+  }
+
+  .transform-label.spinner {
+    background-color: #fffacd;
+    cursor: pointer;
+  }
+
+  .transform-label.canceled {
+    background-color: #f0f0f0;
+    color: #666;
+    cursor: pointer;
+  }
+
+  .transform-label.error {
+    background-color: #ffe0e0;
+    color: #cc0000;
+    cursor: pointer;
+  }
+
+  .spinner-icon {
+    animation: spin 2s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .canceled-icon {
+    font-weight: bold;
+  }
+
+  .error-icon {
+    font-weight: bold;
   }
 
   .extract-selection {
@@ -310,7 +646,8 @@
     filter: invert(1);
   }
 
-  .error {
+  .error-message {
     color: red;
+    white-space: pre-wrap;
   }
 </style>
