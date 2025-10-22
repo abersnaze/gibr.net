@@ -99,9 +99,20 @@ const transforms: Record<string, Transform> = {
     name: "Base 58",
     prev: "TextDisplay",
     analyze: (data: string) => {
+      // Base58 decoding also has O(n²) complexity for large inputs
+      const MAX_SIZE = 100 * 1024; // 100KB limit for base58 strings
+
+      if (data.length > MAX_SIZE) {
+        const sizeKB = (data.length / 1024).toFixed(2);
+        return {
+          score: 0.0,
+          message: `Input too large for Base58 decoding (${sizeKB} KB). Base58 is only practical for small data (<100 KB).`
+        };
+      }
+
       try {
         const content = base58.decode(data);
-        
+
         // Provide the inverse function: binary -> base58 string
         const inverse = (content: Content, options?: string) => {
           if (content instanceof Uint8Array) {
@@ -109,9 +120,9 @@ const transforms: Record<string, Transform> = {
           }
           throw new Error("Expected Uint8Array for base58 encoding");
         };
-        
-        return { 
-          score: 1.0, 
+
+        return {
+          score: 1.0,
           content,
           inverse
         };
@@ -124,9 +135,21 @@ const transforms: Record<string, Transform> = {
     name: "Base 58",
     prev: "BinaryDisplay",
     analyze: (data: Uint8Array) => {
+      // Base58 encoding has O(n²) complexity and is impractical for large inputs
+      // Typical use cases are small data like hashes or addresses
+      const MAX_SIZE = 64 * 1024; // 64KB limit
+
+      if (data.length > MAX_SIZE) {
+        const sizeMB = (data.length / (1024 * 1024)).toFixed(2);
+        return {
+          score: 0.0,
+          message: `Input too large for Base58 encoding (${sizeMB} MB). Base58 is only practical for small data (<64 KB).`
+        };
+      }
+
       try {
         const content = base58.encode(data);
-        
+
         // Provide the inverse function: base58 string -> binary
         const inverse = (content: Content, options?: string) => {
           if (typeof content === 'string') {
@@ -134,9 +157,9 @@ const transforms: Record<string, Transform> = {
           }
           throw new Error("Expected string for base58 decoding");
         };
-        
-        return { 
-          score: 1.0, 
+
+        return {
+          score: 1.0,
           content,
           inverse
         };
