@@ -82,10 +82,21 @@
     return state?.result;
   })();
 
+  // Spinner animation state
+  let spinnerFrame = 0;
+  let spinnerInterval;
+  const spinnerChars = ['▖', '▘', '▝', '▗'];
+
   onMount(() => {
     // Initialize tracking variables
     previousContent = step.content;
     previousCurr = step.curr;
+
+    // Start spinner animation
+    spinnerInterval = setInterval(() => {
+      spinnerFrame = (spinnerFrame + 1) % 4;
+    }, 200); // 200ms per frame
+
     restartAnalysis();
   });
 
@@ -95,6 +106,11 @@
       if (state.worker) {
         state.worker.terminate();
       }
+    }
+
+    // Clear spinner animation
+    if (spinnerInterval) {
+      clearInterval(spinnerInterval);
     }
   });
 
@@ -596,7 +612,7 @@
           on:click={() => handleWorkerClick(item.id)}
           title="Click to cancel"
         >
-          <span class="spinner-icon">◒</span>
+          <span class="spinner-icon">{spinnerChars[spinnerFrame]}</span>
           {item.result?.from_name || item.id}
         </button>
       {:else if item.state === 'canceled'}
@@ -674,16 +690,8 @@
   }
 
   .spinner-icon {
-    animation: spin 2s linear infinite;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+    display: inline-block;
+    min-width: 1ch;
   }
 
   .canceled-icon {
