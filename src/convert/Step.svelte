@@ -50,8 +50,11 @@
 
   // Worker state tracking
   // State: 'pending' | 'running' | 'complete' | 'canceled' | 'error'
-  let workerStates = new Map(); // transformId -> { state, worker, result, message, requestId }
+  let workerStates = new Map(); // transformId -> { state, worker, result, message, requestId, showSpinner, spinnerTimeout }
   let requestCounter = 0;
+
+  // Delay before showing spinner (ms) to avoid flashing during fast analysis
+  const SPINNER_DELAY = 300;
 
   // Get compatible transforms for the current step
   $: compatibleTransforms = Object.entries(allTransforms)
@@ -96,10 +99,13 @@
   });
 
   function restartAnalysis() {
-    // Terminate existing workers
+    // Terminate existing workers and clear spinner timeouts
     for (const [_, state] of workerStates.entries()) {
       if (state.worker) {
         state.worker.terminate();
+      }
+      if (state.spinnerTimeout) {
+        clearTimeout(state.spinnerTimeout);
       }
     }
 
@@ -123,13 +129,28 @@
         { type: 'module' }
       );
 
+      // Set up delayed spinner display
+      const spinnerTimeout = setTimeout(() => {
+        const currentState = workerStates.get(transformId);
+        if (currentState && currentState.requestId === requestId &&
+            (currentState.state === 'pending' || currentState.state === 'running')) {
+          workerStates.set(transformId, {
+            ...currentState,
+            showSpinner: true
+          });
+          workerStates = new Map(workerStates);
+        }
+      }, SPINNER_DELAY);
+
       // Initialize state
       workerStates.set(transformId, {
         state: 'pending',
         worker,
         result: null,
         message: 'Starting analysis...',
-        requestId
+        requestId,
+        showSpinner: false,
+        spinnerTimeout
       });
       workerStates = new Map(workerStates);
 
@@ -152,6 +173,11 @@
           workerStates = new Map(workerStates);
         } else if (status === 'complete') {
           try {
+            // Clear spinner timeout since we're done
+            if (currentState.spinnerTimeout) {
+              clearTimeout(currentState.spinnerTimeout);
+            }
+
             // Recreate the inverse function from the main thread
             const transform = allTransforms[transformId];
             let inverse = null;
@@ -175,7 +201,9 @@
               ...currentState,
               state: 'complete',
               result: analyzeResult,
-              message: null
+              message: null,
+              spinnerTimeout: null,
+              showSpinner: false
             });
             workerStates = new Map(workerStates);
 
@@ -183,6 +211,10 @@
             worker.terminate();
           } catch (error) {
             console.error(`[Step ${index}] Error processing worker result for ${transformId}:`, error);
+            // Clear spinner timeout on error
+            if (currentState.spinnerTimeout) {
+              clearTimeout(currentState.spinnerTimeout);
+            }
             workerStates.set(transformId, {
               ...currentState,
               state: 'error',
@@ -192,12 +224,18 @@
                 from_id: transformId,
                 message: `Error processing result: ${error.message}`
               },
-              message: `Error processing result: ${error.message}`
+              message: `Error processing result: ${error.message}`,
+              spinnerTimeout: null,
+              showSpinner: false
             });
             workerStates = new Map(workerStates);
             worker.terminate();
           }
         } else if (status === 'error') {
+          // Clear spinner timeout on error
+          if (currentState.spinnerTimeout) {
+            clearTimeout(currentState.spinnerTimeout);
+          }
           workerStates.set(transformId, {
             ...currentState,
             state: 'error',
@@ -207,7 +245,9 @@
               from_id: transformId,
               message: error || message
             },
-            message: error || message
+            message: error || message,
+            spinnerTimeout: null,
+            showSpinner: false
           });
           workerStates = new Map(workerStates);
 
@@ -220,6 +260,10 @@
         console.error(`[Step] Worker error for ${transformId}:`, error);
         const currentState = workerStates.get(transformId);
         if (currentState && currentState.requestId === requestId) {
+          // Clear spinner timeout on error
+          if (currentState.spinnerTimeout) {
+            clearTimeout(currentState.spinnerTimeout);
+          }
           workerStates.set(transformId, {
             ...currentState,
             state: 'error',
@@ -229,7 +273,9 @@
               from_id: transformId,
               message: `Worker error: ${error.message}`
             },
-            message: `Worker error: ${error.message}`
+            message: `Worker error: ${error.message}`,
+            spinnerTimeout: null,
+            showSpinner: false
           });
           workerStates = new Map(workerStates);
         }
@@ -256,7 +302,9 @@
           message: `Failed to create worker: ${error.message}`
         },
         message: `Failed to create worker: ${error.message}`,
-        requestId
+        requestId,
+        showSpinner: false,
+        spinnerTimeout: null
       });
       workerStates = new Map(workerStates);
     }
@@ -271,6 +319,11 @@
       state.worker.terminate();
     }
 
+    // Clear spinner timeout
+    if (state.spinnerTimeout) {
+      clearTimeout(state.spinnerTimeout);
+    }
+
     // Update state to canceled
     workerStates.set(transformId, {
       ...state,
@@ -282,7 +335,9 @@
         message: `Analysis canceled. Last status: ${state.message || 'pending'}`
       },
       message: `Canceled: ${state.message || 'pending'}`,
-      worker: null
+      worker: null,
+      spinnerTimeout: null,
+      showSpinner: false
     });
     workerStates = new Map(workerStates);
   }
@@ -460,7 +515,8 @@
         id,
         state: state.state,
         result: state.result,
-        message: state.message
+        message: state.message,
+        showSpinner: state.showSpinner
       }))
       .filter(item => item.id !== 'jsonpath_select' && item.id !== 'substring_select');
 
@@ -534,7 +590,7 @@
           {Math.round((item.result?.score || 0) * 100) + "% "}
           {item.result?.from_name || item.id}
         </label>
-      {:else if item.state === 'pending' || item.state === 'running'}
+      {:else if (item.state === 'pending' || item.state === 'running') && item.showSpinner}
         <button
           class="transform-label spinner"
           on:click={() => handleWorkerClick(item.id)}
