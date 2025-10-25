@@ -3,8 +3,16 @@ import { defineConfig } from 'vite';
 import { execSync } from 'child_process';
 
 // Get git commit hash and build date
-const gitHash = execSync('git rev-parse HEAD').toString().trim();
-const buildDate = new Date().toISOString().split('T')[0];
+// Fallback to environment variables or defaults if git is not available (e.g., in Docker)
+let gitHash = 'unknown';
+let buildDate = new Date().toISOString().split('T')[0];
+
+try {
+	gitHash = execSync('git rev-parse HEAD').toString().trim();
+} catch (error) {
+	// Git not available, try environment variables
+	gitHash = process.env.GIT_COMMIT || process.env.COMMIT_SHA || 'unknown';
+}
 
 export default defineConfig({
 	plugins: [sveltekit()],
