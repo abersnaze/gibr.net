@@ -2,17 +2,27 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { execSync } from 'child_process';
 
-// Get git commit hash and build date
-// Fallback to environment variables or defaults if git is not available (e.g., in Docker)
-let gitHash = 'unknown';
-let buildDate = new Date().toISOString().split('T')[0];
-
-try {
-	gitHash = execSync('git rev-parse HEAD').toString().trim();
-} catch (error) {
-	// Git not available, try environment variables
-	gitHash = process.env.GIT_COMMIT || process.env.COMMIT_SHA || 'unknown';
+// Function to get git hash - evaluated at config time
+function getGitHash() {
+	try {
+		const hash = execSync('git rev-parse HEAD').toString().trim();
+		console.log('[vite.config.js] Git hash from git command:', hash);
+		return hash;
+	} catch (error) {
+		console.log('[vite.config.js] Git command failed:', error.message);
+		// Git not available, try environment variables (Docker/CI)
+		const envHash = process.env.SOURCE_COMMIT || process.env.GIT_COMMIT || process.env.COMMIT_SHA;
+		if (envHash) {
+			console.log('[vite.config.js] Using git hash from environment:', envHash);
+			return envHash;
+		}
+		console.log('[vite.config.js] No git hash available, using "unknown"');
+		return 'unknown';
+	}
 }
+
+const gitHash = getGitHash();
+const buildDate = new Date().toISOString().split('T')[0];
 
 export default defineConfig({
 	plugins: [sveltekit()],
