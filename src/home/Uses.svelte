@@ -24,6 +24,8 @@
       </dd>
       <dt><a href="https://code.visualstudio.com">VisualStudio Code</a></dt>
       <dd>For all things not Java.</dd>
+      <dt><a href="https://claude.ai/">Claude</a></dt>
+      <dd>AI assistant for coding and problem solving.</dd>
       <dt><a href="https://www.omnigroup.com/omnigraffle">OmniGraffle</a></dt>
       <dd>My first choice when making diagrams</dd>
       <dt><a href="https://www.google.com/chrome">Chrome</a></dt>
@@ -40,9 +42,9 @@
   <section>
     <h2>Languages & Libraries</h2>
     <ul>
-      <li><a href="http://openjdk.java.net/">Java</a></li>
-      <li><a href="https://nodejs.org/">Node</a></li>
       <li><a href="http://python.org/">Python</a></li>
+      <li><a href="https://openjdk.org/">Java</a></li>
+      <li><a href="https://nodejs.org/">Node</a></li>
       <li><a href="https://svelte.dev/">Svelte</a></li>
       <li><a href="https://www.typescriptlang.org/">Typescript</a></li>
       <li><a href="http://www.groovy-lang.org/">Groovy</a></li>
@@ -59,7 +61,6 @@
       <li><a href="http://kafka.apache.org/">Kafka</a></li>
       <li><a href="https://www.docker.com/">Docker</a></li>
       <li><a href="https://spring.io/projects/spring-boot">SpringBoot</a></li>
-      <li><a href="https://reactjs.org/">React</a></li>
       <li><a href="https://github.com/">Github</a></li>
     </ul>
   </section>
@@ -69,9 +70,9 @@
       <dt>
         <a href="https://www.apple.com/macbook-pro/">Apple: MacBook Pro</a>
       </dt>
-      <dd>The 15-inch, 2019 model.</dd>
+      <dd>The 16-inch, 2023 model with Apple M2 Max.</dd>
       <dt>
-        <a href="https://www.belkin.com/us/p/P-F4U097/"
+        <a href="https://www.belkin.com/p/thunderbolt-3-dock-pro/F4U097tt.html"
           >Belkin: Thunderbolt 3 Dock Pro</a
         >
       </dt>
@@ -87,15 +88,15 @@
         I tiny numb on the side of my laptop that I use with Netflix's two
         factor SSO.
       </dd>
-      <dt><a href="http://www.filcokeyboards.co.uk/">Filco: Keyboard</a></dt>
+      <dt><a href="https://www.diatec.co.jp/en/det.php?prod_c=763">Filco: Keyboard</a></dt>
       <dd>
         Tenkeyless size with <a
-          href="https://www.cherrymx.de/en/cherry-mx/mx-original/mx-blue.html"
+          href="https://www.cherrymx.de/cherry-mx/mx-original/mx-blue.html"
           >Cherry MX Blue</a
         > switches.
       </dd>
       <dt>
-        <a href="https://www.apple.com/shop/product/MRME2LL/A"
+        <a href="https://www.apple.com/shop/product/mxk53am/a/magic-mouse-usb-c-white-multi-touch-surface"
           >Apple: Magic Mouse 2</a
         >
       </dt>
@@ -113,35 +114,21 @@
         >
       </dt>
       <dd>Compfy headphones for long meetings.</dd>
-      <dt>
-        <a
-          href="https://neewer.com/collections/microphone/products/microphones-accessories-40084747"
-          >Neewer: NW-700</a
-        >
-      </dt>
+      <dt>Neewer: NW-700 (discontinued)</dt>
       <dd>
         Condenser microphone that I got for cheep from a co-worker a couple of
         years ago.
       </dd>
-      <dt>
-        <a href="https://www.lg.com/us/business/desktop-monitors/lg-34UC87M-B"
-          >LG: 34" curved monitor</a
-        >
-      </dt>
+      <dt>LG: 34" curved monitor (discontinued)</dt>
       <dd>wide enough all my windows.</dd>
-      <dt>
-        <a
-          href="https://www.logitech.com/en-us/products/webcams/4k-pro-magnetic-webcam.960-001292.html?crid=34"
-          >Logitech: 4K pro magnetic webcam</a
-        >
-      </dt>
+      <dt>Logitech: 4K pro magnetic webcam (discontinued)</dt>
       <dd>
         Used some black magnetic tape on the top of the monitor for it to
         attach.
       </dd>
       <dt>
         <a
-          href="https://www.fully.com/standing-desks/laminate-standing-desks/jarvis-adjustable-height-desk-laminate.html"
+          href="https://store.hermanmiller.com/standing-desks/jarvis-bamboo-standing-desk/2542428.html"
           >Fully: Jarvis Laminate Standing Desk</a
         >
       </dt>

@@ -657,12 +657,14 @@
   }
 
   .transform-radio:checked + .transform-label {
-    filter: invert(1);
+    background-color: var(--text-color);
+    color: var(--bg-color);
   }
 
   .transform-label {
-    background-color: white;
-    border: solid thin;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: solid thin var(--border-color);
     border-radius: 0.3em;
     padding: 0.1em 0.5em;
     margin: 0.2em;
@@ -673,19 +675,20 @@
   }
 
   .transform-label.spinner {
-    background-color: #fffacd;
+    background-color: var(--status-spinner-bg);
+    color: var(--status-spinner-color);
     cursor: pointer;
   }
 
   .transform-label.canceled {
-    background-color: #f0f0f0;
-    color: #666;
+    background-color: var(--status-canceled-bg);
+    color: var(--status-canceled-color);
     cursor: pointer;
   }
 
   .transform-label.error {
-    background-color: #ffe0e0;
-    color: #cc0000;
+    background-color: var(--status-error-bg);
+    color: var(--status-error-color);
     cursor: pointer;
   }
 
@@ -707,11 +710,12 @@
   }
 
   .extract-selection.selected {
-    filter: invert(1);
+    background-color: var(--text-color);
+    color: var(--bg-color);
   }
 
   .error-message {
-    color: red;
+    color: var(--status-error-color);
     white-space: pre-wrap;
   }
 </style>

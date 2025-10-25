@@ -216,6 +216,7 @@
   }
 
   .highlight {
-    background-color: yellow;
+    background-color: var(--highlight-bg);
+    color: var(--highlight-color);
   }
 </style>

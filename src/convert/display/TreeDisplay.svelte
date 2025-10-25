@@ -338,8 +338,8 @@
     align-items: center;
     gap: 0.25em;
     padding: 0.1em 0.3em;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: var(--toggle-bg);
+    border: 1px solid var(--toggle-border);
     border-radius: 3px;
     cursor: pointer;
     font-size: 0.85em;
@@ -349,7 +349,7 @@
   }
 
   .toggle-btn:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--toggle-bg-hover);
   }
 
   .batches-container {
@@ -370,8 +370,8 @@
     align-items: center;
     gap: 0.25em;
     padding: 0.1em 0.3em;
-    background: rgba(100, 150, 255, 0.08);
-    border: 1px solid rgba(100, 150, 255, 0.2);
+    background: var(--batch-toggle-bg);
+    border: 1px solid var(--batch-toggle-border);
     border-radius: 3px;
     cursor: pointer;
     font-size: 0.85em;
@@ -381,11 +381,11 @@
   }
 
   .batch-toggle-btn:hover {
-    background: rgba(100, 150, 255, 0.15);
+    background: var(--batch-toggle-bg-hover);
   }
 
   .batch-range {
-    color: rgba(0, 0, 0, 0.6);
+    color: var(--text-subtle);
     font-size: 0.9em;
   }
 
@@ -395,7 +395,7 @@
   }
 
   .type-label {
-    color: rgba(0, 0, 0, 0.5);
+    color: var(--text-dim);
     font-size: 0.9em;
   }
 
@@ -476,12 +476,12 @@
   .clickable-value:hover,
   .clickable-key:focus,
   .clickable-value:focus {
-    background-color: rgba(100, 150, 255, 0.2);
+    background-color: var(--clickable-hover);
   }
 
   .clickable-key:focus,
   .clickable-value:focus {
-    outline: 2px solid rgba(100, 150, 255, 0.5);
+    outline: 2px solid var(--clickable-focus);
     outline-offset: 1px;
   }
 
@@ -496,7 +496,7 @@
   }
 
   em {
-    color: rgba(0, 0, 0, 0.4);
+    color: var(--text-muted);
     font-style: italic;
   }
 </style>

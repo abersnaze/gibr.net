@@ -1,3 +1,86 @@
+/* CSS Variables for theming */
+:root {
+  /* Light theme (default) */
+  --bg-color: #ffffff;
+  --text-color: #333333;
+  --text-secondary: #666666;
+  --text-muted: rgba(0, 0, 0, 0.4);
+  --text-dim: rgba(0, 0, 0, 0.5);
+  --text-subtle: rgba(0, 0, 0, 0.6);
+  --link-color: rgb(0, 100, 200);
+  --link-visited: rgb(0, 80, 160);
+  --border-color: #ccc;
+  --button-bg: #f4f4f4;
+  --button-bg-active: #ddd;
+  --button-border-focus: #666;
+  --disabled-color: #ccc;
+  --disabled-text: #999;
+
+  /* UI element colors */
+  --toggle-bg: rgba(0, 0, 0, 0.05);
+  --toggle-bg-hover: rgba(0, 0, 0, 0.1);
+  --toggle-border: rgba(0, 0, 0, 0.1);
+  --batch-toggle-bg: rgba(100, 150, 255, 0.08);
+  --batch-toggle-bg-hover: rgba(100, 150, 255, 0.15);
+  --batch-toggle-border: rgba(100, 150, 255, 0.2);
+  --clickable-hover: rgba(100, 150, 255, 0.2);
+  --clickable-focus: rgba(100, 150, 255, 0.5);
+
+  /* Status colors */
+  --status-spinner-bg: #fffacd;
+  --status-spinner-color: inherit;
+  --status-error-bg: #ffe0e0;
+  --status-error-color: #cc0000;
+  --status-canceled-bg: #f0f0f0;
+  --status-canceled-color: #666;
+
+  /* Highlight colors */
+  --highlight-bg: #ffff00;
+  --highlight-color: #000000;
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #1e1e1e;
+    --text-color: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --text-muted: rgba(255, 255, 255, 0.4);
+    --text-dim: rgba(255, 255, 255, 0.5);
+    --text-subtle: rgba(255, 255, 255, 0.6);
+    --link-color: rgb(100, 180, 255);
+    --link-visited: rgb(150, 150, 255);
+    --border-color: #555;
+    --button-bg: #2d2d2d;
+    --button-bg-active: #3d3d3d;
+    --button-border-focus: #888;
+    --disabled-color: #555;
+    --disabled-text: #666;
+
+    /* UI element colors */
+    --toggle-bg: rgba(255, 255, 255, 0.08);
+    --toggle-bg-hover: rgba(255, 255, 255, 0.12);
+    --toggle-border: rgba(255, 255, 255, 0.15);
+    --batch-toggle-bg: rgba(100, 150, 255, 0.15);
+    --batch-toggle-bg-hover: rgba(100, 150, 255, 0.25);
+    --batch-toggle-border: rgba(100, 150, 255, 0.3);
+    --clickable-hover: rgba(100, 150, 255, 0.3);
+    --clickable-focus: rgba(100, 150, 255, 0.6);
+
+    /* Status colors */
+    --status-spinner-bg: #4a4000;
+    --status-spinner-color: #ffd700;
+    --status-error-bg: #4a0000;
+    --status-error-color: #ff6666;
+    --status-canceled-bg: #2a2a2a;
+    --status-canceled-color: #888;
+
+    /* Highlight colors */
+    --highlight-bg: #665500;
+    --highlight-color: #ffff99;
+  }
+}
+
 html,
 body {
   position: relative;
@@ -6,7 +89,8 @@ body {
 }
 
 body {
-  color: #333333;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -38,7 +122,7 @@ h5 {
 }
 
 a {
-  color: rgb(0, 100, 200);
+  color: var(--link-color);
   text-decoration: none;
 }
 
@@ -47,7 +131,7 @@ a:hover {
 }
 
 a:visited {
-  color: rgb(0, 80, 160);
+  color: var(--link-visited);
 }
 
 label {
@@ -66,6 +150,13 @@ main {
   padding-right: 13px;
 }
 
+/* Adjust external link icon for dark mode */
+@media (prefers-color-scheme: dark) {
+  .external {
+    filter: brightness(1.5) saturate(0.8);
+  }
+}
+
 input,
 button,
 select,
@@ -76,30 +167,32 @@ textarea {
   padding: 0.4em;
   margin: 0 0 0.5em 0;
   box-sizing: border-box;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
   border-radius: 2px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 input:disabled {
-  color: #ccc;
+  color: var(--disabled-color);
 }
 
 button {
-  color: #333333;
-  background-color: #f4f4f4;
+  color: var(--text-color);
+  background-color: var(--button-bg);
   outline: none;
 }
 
 button:disabled {
-  color: #999;
+  color: var(--disabled-text);
 }
 
 button:not(:disabled):active {
-  background-color: #ddd;
+  background-color: var(--button-bg-active);
 }
 
 button:focus {
-  border-color: #666;
+  border-color: var(--button-border-focus);
 }
 
 @font-face {
