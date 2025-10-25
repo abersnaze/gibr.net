@@ -4,9 +4,8 @@
   import TextDisplay from "./display/TextDisplay.svelte";
   import BinaryDisplay from "./display/BinaryDisplay.svelte";
   import TreeDisplay from "./display/TreeDisplay.svelte";
-  import type { Content, DisplayName } from "./model";
+  import type { DisplayName, Step as StepType, Success } from "./model";
   import { analyze, defaultOpts } from "./transforms/index";
-  import { onMount } from 'svelte';
   import { browser } from '$app/environment';
 
   if (browser) {
@@ -21,17 +20,21 @@
   };
 
   // Track the entire conversion chain for bidirectional editing
-  let steps = [
+  let steps: StepType[] = [
     {
       content: "", // Start with empty content
       curr: "TextDisplay" as DisplayName,
       transform_id: null, // transform_id to the next step
+      inverse: undefined // Store the inverse function for this step
     },
   ];
 
+  // Type for the result passed from Step component
+  type StepResult = Success & { nextComponent?: DisplayName };
+
   // Handle updates from child steps
   function handleUpdate(event) {
-    const { index, result, clearSubsequent } = event.detail;
+    const { index, result, clearSubsequent }: { index: number; result: StepResult | null; clearSubsequent: boolean } = event.detail;
 
     console.debug("[Convert] Step update from index:", index, result, "clearSubsequent:", clearSubsequent);
 
@@ -50,7 +53,8 @@
         steps = [...steps, {
           content: result.content,
           curr: result.nextComponent || "TextDisplay",
-          transform_id: null
+          transform_id: null,
+          inverse: undefined
         }];
         return;
       }
@@ -60,7 +64,8 @@
         steps = [...steps, {
           content: result.content,
           curr: result.nextComponent || "TextDisplay",
-          transform_id: null
+          transform_id: null,
+          inverse: undefined
         }];
       } else {
         // This is an existing step - propagate changes forward
@@ -68,10 +73,11 @@
         steps[index + 1] = {
           content: result.content,
           curr: result.nextComponent || "TextDisplay",
-          transform_id: steps[index + 1].transform_id // Keep existing transform selection
+          transform_id: steps[index + 1].transform_id, // Keep existing transform selection
+          inverse: steps[index + 1].inverse // Keep existing inverse function
         };
 
-        // Now recursively apply transforms to all subsequent steps
+        // Now apply transforms to all subsequent steps
         for (let i = index + 1; i < steps.length - 1; i++) {
           if (steps[i].transform_id) {
             // We need to re-analyze and re-apply the transform for this step
@@ -80,7 +86,8 @@
               steps[i + 1] = {
                 content: nextStepResult.content,
                 curr: nextStepResult.nextComponent || "TextDisplay",
-                transform_id: steps[i + 1].transform_id
+                transform_id: steps[i + 1].transform_id,
+                inverse: steps[i + 1].inverse
               };
             }
           } else {
@@ -110,7 +117,7 @@
   }
 
   // Helper function to re-apply a transform on a step
-  function reapplyTransform(step) {
+  function reapplyTransform(step): StepResult | null {
     // Build options object, using step.options if the transform_id matches
     const opts = { ...defaultOpts };
     if (step.transform_id && step.options) {
@@ -120,7 +127,9 @@
     const results = analyze(step, opts);
     const result = results.find((r) => r.from_id === step.transform_id);
     return result && result.content !== undefined ? {
-      ...result,
+      score: result.score || 0,
+      content: result.content,
+      inverse: result.inverse,
       nextComponent: result.display
     } : null;
   }

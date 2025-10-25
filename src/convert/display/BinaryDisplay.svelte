@@ -95,7 +95,7 @@
     // the extra chars.
     let chars = "";
     for (let j = i; j < i + 16 && j < bytes.length; j++) {
-      let code = 0;
+      let code: Uint8Array;
       const byte = bytes[j];
 
       if ((byte & 0x80) !== 0) {

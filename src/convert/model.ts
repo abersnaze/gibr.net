@@ -17,13 +17,13 @@ export interface Step {
   inverse?: (content: Content, options?: string) => Content; // Store inverse function
 }
 
-interface Success {
+export interface Success {
   score: number;
   content: Content;
   inverse?: (content: Content, options?: string) => Content; // Function to reverse this transform
 }
 
-interface Failure {
+export interface Failure {
   message: any;
 }
 

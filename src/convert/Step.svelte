@@ -200,17 +200,19 @@
             if (result.hasInverse && transform) {
               // Re-run the transform to get the inverse function
               const freshResult = transform.analyze(step.content, options[transformId]);
-              inverse = freshResult.inverse;
+              if ('content' in freshResult) {
+                inverse = freshResult.inverse;
+              }
             }
 
             const analyzeResult = {
-              score: result.score,
-              content: result.content,
-              message: result.message,
+              score: 'score' in result ? result.score : 0,
+              content: 'content' in result ? result.content : undefined,
+              message: 'message' in result ? result.message : undefined,
               inverse,
               from_name: transform?.name || transformId,
               from_id: transformId,
-              display: result.content !== undefined ? getDisplayName(result.content) : undefined
+              display: ('content' in result && result.content !== undefined) ? getDisplayName(result.content) : undefined
             };
 
             workerStates.set(transformId, {
@@ -387,7 +389,7 @@
 
     const result = state.result;
 
-    if (result && result.content !== undefined) {
+    if (result && 'content' in result && result.content !== undefined) {
       // Store the inverse function
       step.inverse = result.inverse;
 
@@ -431,7 +433,7 @@
     if (transform) {
       const result = transform.analyze(step.content, newOptions.jsonpath_select);
 
-      if (result && result.content !== undefined) {
+      if (result && 'content' in result && result.content !== undefined) {
         console.log(`[Step ${index}] JSONPath transform applied:`, {
           path,
           resultContent: result.content,
@@ -492,7 +494,7 @@
     if (transform) {
       const result = transform.analyze(step.content, newOptions.substring_select);
 
-      if (result && result.content !== undefined) {
+      if (result && 'content' in result && result.content !== undefined) {
         console.log(`[Step ${index}] Substring transform applied:`, {
           start,
           end,
