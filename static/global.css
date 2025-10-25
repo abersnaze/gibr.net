@@ -1,5 +1,7 @@
 /* CSS Variables for theming */
 :root {
+  color-scheme: light dark;
+
   /* Light theme (default) */
   --bg-color: #ffffff;
   --text-color: #333333;
