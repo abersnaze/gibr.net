@@ -1,8 +1,9 @@
 <script>
   // Get version info at build time
+  // These are replaced by Vite's define plugin at build time
   const version = {
-    hash: '__GIT_HASH__',
-    date: '__BUILD_DATE__'
+    hash: __GIT_HASH__,
+    date: __BUILD_DATE__
   };
 </script>
 
