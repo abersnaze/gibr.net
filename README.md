@@ -74,32 +74,26 @@ rm scripts/setupTypeScript.js
 
 ## Deploying to the web
 
-### With [Vercel](https://vercel.com)
+### With Docker (Coolify, etc.)
 
-Install `vercel` if you haven't already:
-
-```bash
-npm install -g vercel
-```
-
-Then, from within your project folder:
+Build the production Docker image:
 
 ```bash
-cd public
-vercel deploy --name my-project
+docker build -t gibr-net .
 ```
 
-### With [surge](https://surge.sh/)
-
-Install `surge` if you haven't already:
+Run the container:
 
 ```bash
-npm install -g surge
+docker run -p 3000:3000 gibr-net
 ```
 
-Then, from within your project folder:
+### Static hosting
+
+To deploy to any static file host, build the app and serve the `public` directory:
 
 ```bash
 npm run build
-surge public my-project.surge.sh
 ```
+
+The `public` directory can then be deployed to any static hosting service.
