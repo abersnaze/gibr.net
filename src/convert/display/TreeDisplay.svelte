@@ -113,15 +113,6 @@
     });
   }
 
-  // Handle key click - selects the value at that key
-  function handleKeyClick(key, event) {
-    // Don't trigger if clicking on the toggle button
-    if (event.target.closest('.toggle-btn')) return;
-
-    const keyPath = path + "." + key;
-    handleSelect(keyPath, content[key]);
-  }
-
   // Handle value click - selects that specific value
   function handleValueClick(valuePath, value) {
     handleSelect(valuePath, value);
@@ -210,14 +201,7 @@
                         {#if isComplex(item.value)}
                           <!-- Complex value: display on next line -->
                           <div class="key-value-row complex">
-                            <dt
-                              class="clickable-key"
-                              on:click={(e) => handleKeyClick(item.key, e)}
-                              on:keydown={(e) => e.key === 'Enter' && handleKeyClick(item.key, e)}
-                              role="button"
-                              tabindex="0"
-                              title="Click to select this value"
-                            >{item.key}</dt>
+                            <dt>{item.key}</dt>
                             <dd class="complex-value">
                               <svelte:self
                                 bind:content={item.value}
@@ -231,14 +215,7 @@
                         {:else}
                           <!-- Simple value: display inline -->
                           <div class="key-value-row simple">
-                            <dt
-                              class="clickable-key"
-                              on:click={(e) => handleKeyClick(item.key, e)}
-                              on:keydown={(e) => e.key === 'Enter' && handleKeyClick(item.key, e)}
-                              role="button"
-                              tabindex="0"
-                              title="Click to select this value"
-                            >{item.key}</dt>
+                            <dt>{item.key}</dt>
                             <dd>
                               <svelte:self
                                 bind:content={item.value}
@@ -265,14 +242,7 @@
                 {#if isComplex(content[key])}
                   <!-- Complex value: display on next line -->
                   <div class="key-value-row complex">
-                    <dt
-                      class="clickable-key"
-                      on:click={(e) => handleKeyClick(key, e)}
-                      on:keydown={(e) => e.key === 'Enter' && handleKeyClick(key, e)}
-                      role="button"
-                      tabindex="0"
-                      title="Click to select this value"
-                    >{key}</dt>
+                    <dt>{key}</dt>
                     <dd class="complex-value">
                       <svelte:self
                         bind:content={content[key]}
@@ -286,14 +256,7 @@
                 {:else}
                   <!-- Simple value: display inline -->
                   <div class="key-value-row simple">
-                    <dt
-                      class="clickable-key"
-                      on:click={(e) => handleKeyClick(key, e)}
-                      on:keydown={(e) => e.key === 'Enter' && handleKeyClick(key, e)}
-                      role="button"
-                      tabindex="0"
-                      title="Click to select this value"
-                    >{key}</dt>
+                    <dt>{key}</dt>
                     <dd>
                       <svelte:self
                         bind:content={content[key]}
@@ -331,6 +294,13 @@
     display: flex;
     flex-direction: column;
     gap: 0.25em;
+    margin: 0.15em 0;
+  }
+
+  /* Only add larger margin to root level tree display */
+  :global(.display-container) > .array-container,
+  :global(.display-container) > .object-container {
+    margin: 0.5em 0;
   }
 
   .toggle-btn {
@@ -464,35 +434,27 @@
     margin-left: 1.2em;
   }
 
-  .clickable-key,
+  dt {
+    font-weight: 500;
+  }
+
   .clickable-value {
     cursor: pointer;
     transition: background-color 0.1s ease;
     outline: none;
     border-radius: 2px;
+    display: inline-block;
+    padding: 0 0.2em;
   }
 
-  .clickable-key:hover,
   .clickable-value:hover,
-  .clickable-key:focus,
   .clickable-value:focus {
     background-color: var(--clickable-hover);
   }
 
-  .clickable-key:focus,
   .clickable-value:focus {
     outline: 2px solid var(--clickable-focus);
     outline-offset: 1px;
-  }
-
-  .clickable-key {
-    padding: 0 0.2em;
-    font-weight: 500;
-  }
-
-  .clickable-value {
-    display: inline-block;
-    padding: 0 0.2em;
   }
 
   em {

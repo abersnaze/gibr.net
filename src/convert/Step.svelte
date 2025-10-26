@@ -87,6 +87,83 @@
   let spinnerInterval;
   const spinnerChars = ['▖', '▘', '▝', '▗'];
 
+  // Onboarding hint state (only for first step)
+  let showHint = false;
+  let showHint2 = false;
+  let hintTimeout;
+  let hint2Timeout;
+  const HINT_DELAY = 5000; // 5 seconds
+  const HINT2_DELAY = 8000; // 8 seconds
+  const HINT_STORAGE_KEY = 'convert-hint-dismissed';
+
+  function checkAndShowHint() {
+    // Only show hint for first step
+    if (index !== 0) {
+      console.log('[Hint] Not showing hint - not first step, index:', index);
+      return;
+    }
+
+    // Check if user has already seen and dismissed the hint
+    const dismissed = typeof localStorage !== 'undefined' && localStorage.getItem(HINT_STORAGE_KEY) === 'true';
+    console.log('[Hint] Checking localStorage:', { dismissed, key: HINT_STORAGE_KEY });
+    if (dismissed) {
+      console.log('[Hint] Hint already dismissed, not showing');
+      return;
+    }
+
+    // Start timer for showing first hint after inactivity
+    console.log('[Hint] Starting hint timer for', HINT_DELAY, 'ms');
+    hintTimeout = setTimeout(() => {
+      console.log('[Hint] Timer expired, showing hint');
+      showHint = true;
+    }, HINT_DELAY);
+
+    // Start timer for showing second hint
+    console.log('[Hint] Starting hint2 timer for', HINT2_DELAY, 'ms');
+    hint2Timeout = setTimeout(() => {
+      console.log('[Hint] Timer 2 expired, showing hint 2');
+      showHint2 = true;
+    }, HINT2_DELAY);
+  }
+
+  let hintFading = false;
+  let hint2Fading = false;
+
+  function dismissHint() {
+    // Start fade-out animation for both hints
+    hintFading = true;
+    hint2Fading = true;
+
+    // Clear both timers
+    if (hintTimeout) {
+      clearTimeout(hintTimeout);
+      hintTimeout = null;
+    }
+    if (hint2Timeout) {
+      clearTimeout(hint2Timeout);
+      hint2Timeout = null;
+    }
+
+    // Store dismissal in localStorage
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(HINT_STORAGE_KEY, 'true');
+    }
+
+    // Actually hide after animation completes
+    setTimeout(() => {
+      showHint = false;
+      showHint2 = false;
+      hintFading = false;
+      hint2Fading = false;
+    }, 1000);
+  }
+
+  function handleUserActivity(event) {
+    // Any user activity dismisses the hint forever
+    console.log('[Hint] User activity detected, dismissing hint. Event type:', event.type, 'Event:', event);
+    dismissHint();
+  }
+
   onMount(() => {
     // Initialize tracking variables
     previousContent = step.content;
@@ -98,6 +175,15 @@
     }, 200); // 200ms per frame
 
     restartAnalysis();
+
+    // Set up hint timer for first step
+    if (index === 0) {
+      checkAndShowHint();
+
+      // Add event listeners for user activity
+      window.addEventListener('click', handleUserActivity);
+      window.addEventListener('keydown', handleUserActivity);
+    }
   });
 
   onDestroy(() => {
@@ -111,6 +197,18 @@
     // Clear spinner animation
     if (spinnerInterval) {
       clearInterval(spinnerInterval);
+    }
+
+    // Clean up hint timers and event listeners
+    if (hintTimeout) {
+      clearTimeout(hintTimeout);
+    }
+    if (hint2Timeout) {
+      clearTimeout(hint2Timeout);
+    }
+    if (index === 0) {
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
     }
   });
 
@@ -566,15 +664,29 @@
   })();
 </script>
 
-<div>
-  <!-- Display current step content (editable) -->
-  <svelte:component
-    this={currentComponent}
-    bind:content={step.content}
-    on:content-change={handleContentChange}
-    on:path-select={handlePathSelect}
-    on:selection-change={handleSelectionChange}
-  />
+<div class="step-wrapper">
+  <div class="content-row">
+    <!-- Display current step content (editable) -->
+    <div class="display-container">
+      <svelte:component
+        this={currentComponent}
+        bind:content={step.content}
+        on:content-change={handleContentChange}
+        on:path-select={handlePathSelect}
+        on:selection-change={handleSelectionChange}
+      />
+    </div>
+
+    <!-- Onboarding hint (only for first step) -->
+    {#if showHint && index === 0}
+      <div class="hint-message" class:fading={hintFading} role="status" aria-live="polite">
+        <div class="hint-arrow" aria-hidden="true">←</div>
+        <div class="hint-text">
+          Paste text or structured data here to get started
+        </div>
+      </div>
+    {/if}
+  </div>
 
   <!-- Transform menu -->
   <div class="transform-menu">
@@ -645,9 +757,126 @@
       <small class="error-message">{selected_result.message}</small>
     </div>
   {/if}
+
+  <!-- Second onboarding hint (below transform menu) -->
+  {#if showHint2 && index === 0}
+    <div class="hint2-message" class:fading={hint2Fading} role="status" aria-live="polite">
+      <div class="hint2-arrow" aria-hidden="true">←</div>
+      <div class="hint2-text">
+        Then select a transformation
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
+  .step-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .content-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .display-container {
+    flex: 0 1 auto;
+  }
+
+  .hint-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+    white-space: nowrap;
+    animation: fadeIn 0.3s ease-in;
+  }
+
+  .hint-message.fading {
+    animation: fadeOut 1s ease-out forwards;
+  }
+
+  .hint-arrow {
+    font-size: 2em;
+    color: var(--text-color);
+    opacity: 0.6;
+    font-weight: normal;
+    line-height: 1;
+  }
+
+  .hint-text {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.9em;
+    line-height: 1.4;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    opacity: 0.85;
+  }
+
+  .hint2-arrow {
+    font-size: 2em;
+    color: var(--text-color);
+    opacity: 0.6;
+    font-weight: normal;
+    line-height: 1;
+    transform: rotate(90deg);
+    display: inline-block;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  .hint2-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    pointer-events: none;
+    margin-top: 10px;
+    margin-left: 60px;
+    animation: fadeIn 0.3s ease-in;
+  }
+
+  .hint2-message.fading {
+    animation: fadeOut 1s ease-out forwards;
+  }
+
+  .hint2-text {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.9em;
+    line-height: 1.4;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    opacity: 0.85;
+    white-space: nowrap;
+  }
+
   .transform-menu {
     display: flex;
     flex-direction: row;

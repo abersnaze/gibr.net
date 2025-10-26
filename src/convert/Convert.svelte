@@ -237,9 +237,9 @@
 
 <main>
   <h1><Logo /> Convert Things</h1>
-  <section>
-    {#each steps as step, index (index)}
+  {#each steps as step, index (index)}
+    <section aria-label="Transformation step {index + 1}">
       <Step bind:step {index} onupdate={handleUpdate} />
-    {/each}
-  </section>
+    </section>
+  {/each}
 </main>

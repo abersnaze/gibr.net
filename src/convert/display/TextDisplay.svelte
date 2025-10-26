@@ -134,6 +134,7 @@
     cols="80"
     rows="4"
     bind:this={textbox}
+    aria-label="Text content for transformation"
     title="Select text to extract it to a new step"
   ></textarea>
 {/if}
