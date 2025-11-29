@@ -1,38 +1,19 @@
 <script lang="ts">
-  import { defaultOpts } from "./transforms/index";
-  import { onMount, onDestroy } from 'svelte';
+  import { defaultOpts, allTransforms } from "./transforms/index";
+  import { onMount, onDestroy, getContext } from 'svelte';
   import TextDisplay from "./display/TextDisplay.svelte";
   import BinaryDisplay from "./display/BinaryDisplay.svelte";
   import TreeDisplay from "./display/TreeDisplay.svelte";
+  import DateDisplay from "./display/DateDisplay.svelte";
   import { getDisplayName } from "./model";
-
-  // Import all transforms to get the list
-  import base16 from "./transforms/base16";
-  import base58 from "./transforms/base58";
-  import base64 from "./transforms/base64";
-  import json from "./transforms/json";
-  import jsonpath from "./transforms/jsonpath";
-  import substring from "./transforms/substring";
-  import uri from "./transforms/uri";
-  import utf8 from "./transforms/utf8";
-  import yaml from "./transforms/yaml";
-
-  // Combine all transforms
-  const allTransforms = {
-    ...base16,
-    ...base58,
-    ...base64,
-    ...json,
-    ...jsonpath,
-    ...substring,
-    ...uri,
-    ...utf8,
-    ...yaml,
-  };
+  import type { Writable } from 'svelte/store';
 
   export let index: number;
   export let step: any;
   export let onupdate: (event: any) => void = () => {};
+
+  // Get pauseAnalysis store from context
+  const pauseAnalysis = getContext<Writable<boolean>>('pauseAnalysis');
 
   let options = defaultOpts;
   let textSelection = null;
@@ -42,7 +23,8 @@
   const displayComponents = {
     'TextDisplay': TextDisplay,
     'BinaryDisplay': BinaryDisplay,
-    'TreeDisplay': TreeDisplay
+    'TreeDisplay': TreeDisplay,
+    'DateDisplay': DateDisplay
   };
 
   // Get the actual component from the display name
@@ -65,14 +47,34 @@
   let previousContent = step.content;
   let previousCurr = step.curr;
 
+  // Track if content changed while paused
+  let contentChangedWhilePaused = false;
+
   // Reactive trigger to restart analysis when step content or display type changes
   // Do NOT restart when only transform_id changes
+  // Also skip analysis when pauseAnalysis flag is set (during bulk updates)
   $: if (step && step.content !== undefined && step.curr) {
     if (step.content !== previousContent || step.curr !== previousCurr) {
-      previousContent = step.content;
-      previousCurr = step.curr;
-      restartAnalysis();
+      if ($pauseAnalysis) {
+        // Mark that content changed while paused and update tracking
+        console.debug(`[Step ${index}] Content changed while paused, deferring analysis`);
+        contentChangedWhilePaused = true;
+        previousContent = step.content;
+        previousCurr = step.curr;
+      } else {
+        console.debug(`[Step ${index}] Content changed, restarting analysis`);
+        previousContent = step.content;
+        previousCurr = step.curr;
+        restartAnalysis();
+      }
     }
+  }
+
+  // When analysis resumes, restart if content changed while paused
+  $: if (!$pauseAnalysis && contentChangedWhilePaused) {
+    console.debug(`[Step ${index}] Analysis resumed, starting deferred analysis`);
+    contentChangedWhilePaused = false;
+    restartAnalysis();
   }
 
   // Selected result
@@ -160,7 +162,6 @@
 
   function handleUserActivity(event) {
     // Any user activity dismisses the hint forever
-    console.log('[Hint] User activity detected, dismissing hint. Event type:', event.type, 'Event:', event);
     dismissHint();
   }
 
@@ -310,8 +311,18 @@
               inverse,
               from_name: transform?.name || transformId,
               from_id: transformId,
-              display: ('content' in result && result.content !== undefined) ? getDisplayName(result.content) : undefined
+              display: ('display' in result && result.display)
+                ? result.display
+                : (('content' in result && result.content !== undefined) ? getDisplayName(result.content) : undefined),
+              optionComponent: transform?.optionsComponent,
+              defaults: transform?.defaults
             };
+
+            // If the transform returned updated options (e.g., from auto-detection), use them
+            if ('options' in result && result.options) {
+              options[transformId] = result.options;
+              options = { ...options }; // Trigger reactivity
+            }
 
             workerStates.set(transformId, {
               ...currentState,
@@ -325,6 +336,14 @@
 
             // Terminate worker
             worker.terminate();
+
+            // If this transform is currently selected, update the inverse function
+            // but don't propagate (onupdate) as that would clear subsequent steps
+            // The transform is already applied, we just need to update the inverse
+            if (step.transform_id === transformId && analyzeResult.content !== undefined) {
+              step.options = options[transformId];
+              step.inverse = analyzeResult.inverse;
+            }
           } catch (error) {
             console.error(`[Step ${index}] Error processing worker result for ${transformId}:`, error);
             // Clear spinner timeout on error
@@ -475,9 +494,38 @@
     }
   }
 
+  function reapplyTransform(transformId: string) {
+    // Re-run the worker with the new options
+    // First, clear the current worker state to force a re-run
+    const currentState = workerStates.get(transformId);
+    if (currentState?.worker) {
+      currentState.worker.terminate();
+    }
+    workerStates.delete(transformId);
+    workerStates = new Map(workerStates);
+
+    // Restart the worker with new options
+    startWorker(transformId);
+  }
+
   function handleTransformSelect(transformId: string) {
     const state = workerStates.get(transformId);
     if (!state || state.state !== 'complete') {
+      return;
+    }
+
+    // If clicking on already selected transform, unselect it
+    if (step.transform_id === transformId) {
+      step.transform_id = null;
+      step.inverse = undefined;
+      previousTransformId = null;
+
+      // Clear subsequent steps
+      onupdate({ detail: {
+        index,
+        result: null,
+        clearSubsequent: true
+      } });
       return;
     }
 
@@ -632,7 +680,8 @@
         state: state.state,
         result: state.result,
         message: state.message,
-        showSpinner: state.showSpinner
+        showSpinner: state.showSpinner,
+        normalizedScore: 0 // Will be calculated below
       }))
       .filter(item => item.id !== 'jsonpath_select' && item.id !== 'substring_select');
 
@@ -641,21 +690,21 @@
       .filter(item => item.state === 'complete' && item.result)
       .reduce((sum, item) => sum + (item.result?.score || 0), 0);
 
-    // Normalize scores
+    // Calculate normalized scores without mutating original
     if (total > 0) {
       results.forEach(item => {
         if (item.state === 'complete' && item.result) {
-          item.result.score = item.result.score / total;
+          item.normalizedScore = item.result.score / total;
         }
       });
     }
 
-    // Sort by score (complete items first, then by score)
+    // Sort by normalized score (complete items first, then by score)
     results.sort((a, b) => {
       if (a.state === 'complete' && b.state !== 'complete') return -1;
       if (a.state !== 'complete' && b.state === 'complete') return 1;
       if (a.state === 'complete' && b.state === 'complete') {
-        return (b.result?.score || 0) - (a.result?.score || 0);
+        return b.normalizedScore - a.normalizedScore;
       }
       return 0;
     });
@@ -707,17 +756,20 @@
       {#if item.state === 'complete'}
         <input
           type="radio"
-          bind:group={step.transform_id}
+          checked={step.transform_id === item.id}
           id={index + "-" + item.id + "-transform"}
           value={item.id}
           class="transform-radio"
-          on:change={() => handleTransformSelect(item.id)}
         />
         <label
           for={index + "-" + item.id + "-transform"}
           class="transform-label"
+          on:click|preventDefault={() => {
+            // Handle both select and unselect
+            handleTransformSelect(item.id);
+          }}
         >
-          {Math.round((item.result?.score || 0) * 100) + "% "}
+          {Math.round(item.normalizedScore * 100) + "% "}
           {item.result?.from_name || item.id}
         </label>
       {:else if (item.state === 'pending' || item.state === 'running') && item.showSpinner}
@@ -750,6 +802,20 @@
       {/if}
     {/each}
   </div>
+
+  <!-- Options component if transform has one -->
+  {#if step.transform_id && selected_result && selected_result.optionComponent}
+    <div class="options-container">
+      <svelte:component
+        this={selected_result.optionComponent}
+        bind:value={options[step.transform_id]}
+        on:change={() => {
+          // Re-run the transform when options change
+          reapplyTransform(step.transform_id);
+        }}
+      />
+    </div>
+  {/if}
 
   <!-- Error message if transform failed -->
   {#if selected_result && selected_result.message}
@@ -880,7 +946,11 @@
   .transform-menu {
     display: flex;
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    /* Min height to prevent collapsing while re-processing
+     * margin + border + padding + content + padding + border + margin
+     */
+    min-height: calc(0.2em + 1px + 0.1em + 1em + 0.1em + 1px + 0.2em);
   }
 
   .transform-radio {
@@ -903,6 +973,7 @@
     display: flex;
     align-items: center;
     gap: 0.3em;
+    white-space: nowrap;
   }
 
   .transform-label.spinner {
@@ -948,5 +1019,9 @@
   .error-message {
     color: var(--status-error-color);
     white-space: pre-wrap;
+  }
+
+  .options-container {
+    margin-top: 0.5em;
   }
 </style>

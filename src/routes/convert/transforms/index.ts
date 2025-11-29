@@ -8,6 +8,8 @@ import { default as yaml_transforms } from "./yaml.js";
 import { default as jsonpath_transforms } from "./jsonpath.js";
 import { default as substring_transforms } from "./substring.js";
 import { default as uri_transforms } from "./uri.js";
+import { default as uuid_transforms } from "./uuid.js";
+import { default as date_transforms } from "./date.js";
 import { getDisplayName, type Transform, type AnalyzeResult } from "../model.js";
 
 const transforms: Record<string, Transform> = Object.assign(
@@ -19,8 +21,26 @@ const transforms: Record<string, Transform> = Object.assign(
   yaml_transforms,
   jsonpath_transforms,
   substring_transforms,
-  uri_transforms
+  uri_transforms,
+  uuid_transforms,
+  date_transforms,
 );
+
+// Attach options component only in main thread (not in worker)
+// Workers don't need UI components, only transform logic
+if (typeof window !== 'undefined' && typeof importScripts === 'undefined') {
+  import("./EpochTimeUnitOptions.svelte").then((module) => {
+    if (transforms.epoch_to_date) {
+      transforms.epoch_to_date.optionsComponent = module.default;
+    }
+    if (transforms.uuid_compose) {
+      transforms.uuid_compose.optionsComponent = module.default;
+    }
+  });
+}
+
+// Export transforms for use in Step.svelte
+export const allTransforms = transforms;
 
 export let defaultOpts = Object.fromEntries(
   Object.entries(transforms).map(([key, value]) => [key, value.defaults])

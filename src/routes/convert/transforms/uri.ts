@@ -147,7 +147,7 @@ const transforms: Record<string, Transform> = {
     analyze: (data: string) => {
       try {
         const content = decodeURIComponent(data);
-        
+
         // Provide the inverse function: decoded text -> encoded URI
         const inverse = (content: Content, options?: string) => {
           if (typeof content === 'string') {
@@ -155,9 +155,15 @@ const transforms: Record<string, Transform> = {
           }
           throw new Error("Expected string for URI encoding");
         };
-        
-        return { 
-          score: 1.0, 
+
+        // Check if the string contains percent-encoded characters
+        const hasPercentEncoding = /%[0-9A-Fa-f]{2}/.test(data);
+
+        // Score higher if there's actually something to decode
+        const score = hasPercentEncoding && content !== data ? 1.0 : 0.1;
+
+        return {
+          score,
           content,
           inverse
         };
@@ -172,7 +178,7 @@ const transforms: Record<string, Transform> = {
     analyze: (data: string) => {
       try {
         const content = encodeURIComponent(data);
-        
+
         // Provide the inverse function: encoded URI -> decoded text
         const inverse = (content: Content, options?: string) => {
           if (typeof content === 'string') {
@@ -180,9 +186,12 @@ const transforms: Record<string, Transform> = {
           }
           throw new Error("Expected string for URI decoding");
         };
-        
-        return { 
-          score: 1.0, 
+
+        // Score higher if encoding actually changed something
+        const score = content !== data ? 1.0 : 0.1;
+
+        return {
+          score,
           content,
           inverse
         };

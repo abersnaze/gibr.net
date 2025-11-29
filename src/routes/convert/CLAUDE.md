@@ -85,6 +85,14 @@ The `analyze()` function returns:
 - **Success**: `{ score: number, content: Content, inverse?: Function }`
 - **Failure**: `{ message: any }` (score defaults to 0)
 
+### Transform Scoring Guidelines
+
+Scores indicate confidence that the transform is appropriate for the input:
+
+- **2.0**: Very sure this is the intended format (e.g., valid UUID with correct structure)
+- **1.0**: It works, but not sure if this is the best interpretation
+- **<1.0**: It works, but there is probably a better option (e.g., 0.75 for YAML on plain text, 0.1 for URI encode when nothing would change)
+
 ### Implementing Inverse Transforms
 
 For bi-directional editing to work, transforms should provide an `inverse` function:

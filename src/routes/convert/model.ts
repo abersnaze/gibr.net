@@ -3,10 +3,12 @@ import type { Component } from 'svelte';
 export type TextContent = string | number | boolean;
 export type BinaryContent = Uint8Array;
 export type TreeContent = object | null;
-export type Content = TextContent | BinaryContent | TreeContent;
+export type DateContent = Date;
+
+export type Content = TextContent | BinaryContent | TreeContent | DateContent;
 
 // Display types as string literals instead of component references
-export type DisplayName = 'TextDisplay' | 'BinaryDisplay' | 'TreeDisplay';
+export type DisplayName = 'TextDisplay' | 'BinaryDisplay' | 'TreeDisplay' | 'DateDisplay';
 export type OptionComponent = Component<{ content: string }>;
 
 export interface Step {
@@ -21,6 +23,7 @@ export interface Success {
   score: number;
   content: Content;
   inverse?: (content: Content, options?: string) => Content; // Function to reverse this transform
+  options?: string; // Options that were actually used (e.g., after auto-detection)
 }
 
 export interface Failure {
@@ -53,7 +56,9 @@ export interface Transform {
 
 // Helper function to infer display name from content type
 export function getDisplayName(content: Content): DisplayName {
-  if (typeof content === 'string' || typeof content === 'number' || typeof content === 'boolean') {
+  if (content instanceof Date) {
+    return 'DateDisplay';
+  } else if (typeof content === 'string' || typeof content === 'number' || typeof content === 'boolean') {
     return 'TextDisplay';
   } else if (content instanceof Uint8Array) {
     return 'BinaryDisplay';
