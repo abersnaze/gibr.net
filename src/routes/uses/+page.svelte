@@ -1,5 +1,5 @@
 <script>
-  import Uses from '../../home/Uses.svelte';
+  import Uses from "../../home/Uses.svelte"
 </script>
 
 <Uses />

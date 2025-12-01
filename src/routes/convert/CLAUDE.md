@@ -73,15 +73,16 @@ Each transform must implement the `Transform` interface:
 
 ```typescript
 interface Transform {
-  name: string;                    // Display name (e.g., "Base 64", "JSON")
-  prev: Display;                   // Compatible input display type
-  analyze: (input: any, options?: string) => Result;
-  optionsComponent?: Component;    // Optional UI for transform options
-  defaults?: string;               // Default options
+  name: string // Display name (e.g., "Base 64", "JSON")
+  prev: Display // Compatible input display type
+  analyze: (input: any, options?: string) => Result
+  optionsComponent?: Component // Optional UI for transform options
+  defaults?: string // Default options
 }
 ```
 
 The `analyze()` function returns:
+
 - **Success**: `{ score: number, content: Content, inverse?: Function }`
 - **Failure**: `{ message: any }` (score defaults to 0)
 
@@ -99,18 +100,19 @@ For bi-directional editing to work, transforms should provide an `inverse` funct
 
 ```typescript
 analyze: (data: string) => {
-  const content = JSON.parse(data);
+  const content = JSON.parse(data)
 
   // Inverse function to reverse this transform
   const inverse = (content: Content) => {
-    return JSON.stringify(content, undefined, 2);
-  };
+    return JSON.stringify(content, undefined, 2)
+  }
 
-  return { score: 2.0, content, inverse };
+  return { score: 2.0, content, inverse }
 }
 ```
 
 **Important**:
+
 - The inverse function must be the exact opposite of the forward transform
 - Inverse functions receive the **output** content and should return the **input** content
 - Not all transforms need inverses, but without them, backward propagation stops at that step
@@ -126,9 +128,10 @@ To add a new transform:
 5. Implement inverse functions for bi-directional editing support
 
 Example:
+
 ```typescript
-import { type Transform, type Content } from "../model";
-import TextDisplay from "../display/TextDisplay.svelte";
+import { type Transform, type Content } from "../model"
+import TextDisplay from "../display/TextDisplay.svelte"
 
 const transforms: Record<string, Transform> = {
   my_transform: {
@@ -136,22 +139,23 @@ const transforms: Record<string, Transform> = {
     prev: TextDisplay,
     analyze: (data: string) => {
       try {
-        const content = transformData(data);
-        const inverse = (content: Content) => reverseTransform(content);
-        return { score: 1.0, content, inverse };
+        const content = transformData(data)
+        const inverse = (content: Content) => reverseTransform(content)
+        return { score: 1.0, content, inverse }
       } catch (error) {
-        return { score: 0.0, message: error.message };
+        return { score: 0.0, message: error.message }
       }
-    }
-  }
-};
+    },
+  },
+}
 
-export default transforms;
+export default transforms
 ```
 
 ## Display Components
 
 Display components must:
+
 - Accept a `content` prop (bindable)
 - Dispatch `content-change` events when edited
 - Handle their specific content type (string, Uint8Array, or object)
@@ -160,6 +164,7 @@ Display components must:
 ## Transform Scoring
 
 Transforms return a score (0.0 = failure, > 0.0 = success):
+
 - Scores are normalized across all compatible transforms
 - Higher scores appear first in the UI
 - Scores displayed as percentages (e.g., "95% JSON")
@@ -168,21 +173,25 @@ Transforms return a score (0.0 = failure, > 0.0 = success):
 ## Implementation Notes
 
 ### Error Handling
+
 - Failed transforms return `{ score: 0.0, message: errorMessage }`
 - Error messages are displayed below the transform selection
 - Failed transforms don't create new steps
 
 ### Reactivity
+
 - Svelte's reactivity tracks the `steps` array
 - Always reassign `steps = [...steps]` after mutations for reactivity
 - The `analyze()` function is reactive: `$: results = analyze(step, options)`
 
 ### Options
+
 - Transforms can provide an `optionsComponent` for custom configuration UI
 - Default options are stored in `defaultOpts` object in transforms/index.ts
 - Options are passed to the `analyze()` function
 
 ### Content Types
+
 - **Text**: String, number, or boolean values (displayed in textarea)
 - **Binary**: Uint8Array (displayed as hex/binary)
 - **Tree**: Objects and arrays (displayed as expandable JSON tree)
@@ -190,14 +199,18 @@ Transforms return a score (0.0 = failure, > 0.0 = success):
 ## Common Patterns
 
 ### Chaining Transforms
+
 Example: Decode base64-encoded JSON:
+
 1. Step 0: Input base64 string (TextDisplay)
 2. Select "Base 64" transform → Step 1: Binary data (BinaryDisplay)
 3. Select "UTF-8" transform → Step 2: JSON string (TextDisplay)
 4. Select "JSON" transform → Step 3: Parsed object (TreeDisplay)
 
 ### Interactive Path Selection
+
 Example: Extract a value from parsed JSON:
+
 1. Step 0: Input JSON string `{"id": "foo", "payload": "YXNkZg=="}`
 2. Select "JSON" transform → Step 1: Parsed object (TreeDisplay with clickable keys/values)
 3. Click the **"payload"** key → Step 2: TextDisplay showing `"YXNkZg=="`
@@ -206,6 +219,7 @@ Example: Extract a value from parsed JSON:
 The path selection creates an implicit `jsonpath_select` transform with path `.payload`.
 
 ### Editing and Inverse Propagation
+
 1. Edit the parsed object at Step 3
 2. System applies inverse: object → JSON string (Step 2)
 3. System applies inverse: JSON string → UTF-8 bytes (Step 1)

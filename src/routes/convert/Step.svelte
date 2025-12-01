@@ -1,54 +1,54 @@
 <script lang="ts">
-  import { defaultOpts, allTransforms } from "./transforms/index";
-  import { onMount, onDestroy, getContext } from 'svelte';
-  import TextDisplay from "./display/TextDisplay.svelte";
-  import BinaryDisplay from "./display/BinaryDisplay.svelte";
-  import TreeDisplay from "./display/TreeDisplay.svelte";
-  import DateDisplay from "./display/DateDisplay.svelte";
-  import { getDisplayName } from "./model";
-  import type { Writable } from 'svelte/store';
+  import { defaultOpts, allTransforms } from "./transforms/index"
+  import { onMount, onDestroy, getContext } from "svelte"
+  import TextDisplay from "./display/TextDisplay.svelte"
+  import BinaryDisplay from "./display/BinaryDisplay.svelte"
+  import TreeDisplay from "./display/TreeDisplay.svelte"
+  import DateDisplay from "./display/DateDisplay.svelte"
+  import { getDisplayName } from "./model"
+  import type { Writable } from "svelte/store"
 
-  export let index: number;
-  export let step: any;
-  export let onupdate: (event: any) => void = () => {};
+  export let index: number
+  export let step: any
+  export let onupdate: (event: any) => void = () => {}
 
   // Get pauseAnalysis store from context
-  const pauseAnalysis = getContext<Writable<boolean>>('pauseAnalysis');
+  const pauseAnalysis = getContext<Writable<boolean>>("pauseAnalysis")
 
-  let options = defaultOpts;
-  let textSelection = null;
-  let previousTransformId = step.transform_id;
+  let options = defaultOpts
+  let textSelection = null
+  let previousTransformId = step.transform_id
 
   // Map display names to component instances
   const displayComponents = {
-    'TextDisplay': TextDisplay,
-    'BinaryDisplay': BinaryDisplay,
-    'TreeDisplay': TreeDisplay,
-    'DateDisplay': DateDisplay
-  };
+    TextDisplay: TextDisplay,
+    BinaryDisplay: BinaryDisplay,
+    TreeDisplay: TreeDisplay,
+    DateDisplay: DateDisplay,
+  }
 
   // Get the actual component from the display name
-  $: currentComponent = displayComponents[step.curr] || TextDisplay;
+  $: currentComponent = displayComponents[step.curr] || TextDisplay
 
   // Worker state tracking
   // State: 'pending' | 'running' | 'complete' | 'canceled' | 'error'
-  let workerStates = new Map(); // transformId -> { state, worker, result, message, requestId, showSpinner, spinnerTimeout }
-  let requestCounter = 0;
+  let workerStates = new Map() // transformId -> { state, worker, result, message, requestId, showSpinner, spinnerTimeout }
+  let requestCounter = 0
 
   // Delay before showing spinner (ms) to avoid flashing during fast analysis
-  const SPINNER_DELAY = 300;
+  const SPINNER_DELAY = 300
 
   // Get compatible transforms for the current step
   $: compatibleTransforms = Object.entries(allTransforms)
     .filter(([_, transform]) => step.curr === transform.prev)
-    .map(([id, transform]) => ({ id, name: transform.name }));
+    .map(([id, transform]) => ({ id, name: transform.name }))
 
   // Track previous values to detect actual changes
-  let previousContent = step.content;
-  let previousCurr = step.curr;
+  let previousContent = step.content
+  let previousCurr = step.curr
 
   // Track if content changed while paused
-  let contentChangedWhilePaused = false;
+  let contentChangedWhilePaused = false
 
   // Reactive trigger to restart analysis when step content or display type changes
   // Do NOT restart when only transform_id changes
@@ -57,617 +57,635 @@
     if (step.content !== previousContent || step.curr !== previousCurr) {
       if ($pauseAnalysis) {
         // Mark that content changed while paused and update tracking
-        console.debug(`[Step ${index}] Content changed while paused, deferring analysis`);
-        contentChangedWhilePaused = true;
-        previousContent = step.content;
-        previousCurr = step.curr;
+        console.debug(`[Step ${index}] Content changed while paused, deferring analysis`)
+        contentChangedWhilePaused = true
+        previousContent = step.content
+        previousCurr = step.curr
       } else {
-        console.debug(`[Step ${index}] Content changed, restarting analysis`);
-        previousContent = step.content;
-        previousCurr = step.curr;
-        restartAnalysis();
+        console.debug(`[Step ${index}] Content changed, restarting analysis`)
+        previousContent = step.content
+        previousCurr = step.curr
+        restartAnalysis()
       }
     }
   }
 
   // When analysis resumes, restart if content changed while paused
   $: if (!$pauseAnalysis && contentChangedWhilePaused) {
-    console.debug(`[Step ${index}] Analysis resumed, starting deferred analysis`);
-    contentChangedWhilePaused = false;
-    restartAnalysis();
+    console.debug(`[Step ${index}] Analysis resumed, starting deferred analysis`)
+    contentChangedWhilePaused = false
+    restartAnalysis()
   }
 
   // Selected result
   $: selected_result = (() => {
-    if (!step.transform_id) return null;
-    const state = workerStates.get(step.transform_id);
-    return state?.result;
-  })();
+    if (!step.transform_id) return null
+    const state = workerStates.get(step.transform_id)
+    return state?.result
+  })()
 
   // Spinner animation state
-  let spinnerFrame = 0;
-  let spinnerInterval;
-  const spinnerChars = ['▖', '▘', '▝', '▗'];
+  let spinnerFrame = 0
+  let spinnerInterval
+  const spinnerChars = ["▖", "▘", "▝", "▗"]
 
   // Onboarding hint state (only for first step)
-  let showHint = false;
-  let showHint2 = false;
-  let hintTimeout;
-  let hint2Timeout;
-  const HINT_DELAY = 5000; // 5 seconds
-  const HINT2_DELAY = 8000; // 8 seconds
-  const HINT_STORAGE_KEY = 'convert-hint-dismissed';
+  let showHint = false
+  let showHint2 = false
+  let hintTimeout
+  let hint2Timeout
+  const HINT_DELAY = 5000 // 5 seconds
+  const HINT2_DELAY = 8000 // 8 seconds
+  const HINT_STORAGE_KEY = "convert-hint-dismissed"
 
   function checkAndShowHint() {
     // Only show hint for first step
     if (index !== 0) {
-      console.log('[Hint] Not showing hint - not first step, index:', index);
-      return;
+      console.log("[Hint] Not showing hint - not first step, index:", index)
+      return
     }
 
     // Check if user has already seen and dismissed the hint
-    const dismissed = typeof localStorage !== 'undefined' && localStorage.getItem(HINT_STORAGE_KEY) === 'true';
-    console.log('[Hint] Checking localStorage:', { dismissed, key: HINT_STORAGE_KEY });
+    const dismissed =
+      typeof localStorage !== "undefined" && localStorage.getItem(HINT_STORAGE_KEY) === "true"
+    console.log("[Hint] Checking localStorage:", { dismissed, key: HINT_STORAGE_KEY })
     if (dismissed) {
-      console.log('[Hint] Hint already dismissed, not showing');
-      return;
+      console.log("[Hint] Hint already dismissed, not showing")
+      return
     }
 
     // Start timer for showing first hint after inactivity
-    console.log('[Hint] Starting hint timer for', HINT_DELAY, 'ms');
+    console.log("[Hint] Starting hint timer for", HINT_DELAY, "ms")
     hintTimeout = setTimeout(() => {
-      console.log('[Hint] Timer expired, showing hint');
-      showHint = true;
-    }, HINT_DELAY);
+      console.log("[Hint] Timer expired, showing hint")
+      showHint = true
+    }, HINT_DELAY)
 
     // Start timer for showing second hint
-    console.log('[Hint] Starting hint2 timer for', HINT2_DELAY, 'ms');
+    console.log("[Hint] Starting hint2 timer for", HINT2_DELAY, "ms")
     hint2Timeout = setTimeout(() => {
-      console.log('[Hint] Timer 2 expired, showing hint 2');
-      showHint2 = true;
-    }, HINT2_DELAY);
+      console.log("[Hint] Timer 2 expired, showing hint 2")
+      showHint2 = true
+    }, HINT2_DELAY)
   }
 
-  let hintFading = false;
-  let hint2Fading = false;
+  let hintFading = false
+  let hint2Fading = false
 
   function dismissHint() {
     // Start fade-out animation for both hints
-    hintFading = true;
-    hint2Fading = true;
+    hintFading = true
+    hint2Fading = true
 
     // Clear both timers
     if (hintTimeout) {
-      clearTimeout(hintTimeout);
-      hintTimeout = null;
+      clearTimeout(hintTimeout)
+      hintTimeout = null
     }
     if (hint2Timeout) {
-      clearTimeout(hint2Timeout);
-      hint2Timeout = null;
+      clearTimeout(hint2Timeout)
+      hint2Timeout = null
     }
 
     // Store dismissal in localStorage
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(HINT_STORAGE_KEY, 'true');
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(HINT_STORAGE_KEY, "true")
     }
 
     // Actually hide after animation completes
     setTimeout(() => {
-      showHint = false;
-      showHint2 = false;
-      hintFading = false;
-      hint2Fading = false;
-    }, 1000);
+      showHint = false
+      showHint2 = false
+      hintFading = false
+      hint2Fading = false
+    }, 1000)
   }
 
   function handleUserActivity(event) {
     // Any user activity dismisses the hint forever
-    dismissHint();
+    dismissHint()
   }
 
   onMount(() => {
     // Initialize tracking variables
-    previousContent = step.content;
-    previousCurr = step.curr;
+    previousContent = step.content
+    previousCurr = step.curr
 
     // Start spinner animation
     spinnerInterval = setInterval(() => {
-      spinnerFrame = (spinnerFrame + 1) % 4;
-    }, 200); // 200ms per frame
+      spinnerFrame = (spinnerFrame + 1) % 4
+    }, 200) // 200ms per frame
 
-    restartAnalysis();
+    restartAnalysis()
 
     // Set up hint timer for first step
     if (index === 0) {
-      checkAndShowHint();
+      checkAndShowHint()
 
       // Add event listeners for user activity
-      window.addEventListener('click', handleUserActivity);
-      window.addEventListener('keydown', handleUserActivity);
+      window.addEventListener("click", handleUserActivity)
+      window.addEventListener("keydown", handleUserActivity)
     }
-  });
+  })
 
   onDestroy(() => {
     // Terminate all workers
     for (const [_, state] of workerStates.entries()) {
       if (state.worker) {
-        state.worker.terminate();
+        state.worker.terminate()
       }
     }
 
     // Clear spinner animation
     if (spinnerInterval) {
-      clearInterval(spinnerInterval);
+      clearInterval(spinnerInterval)
     }
 
     // Clean up hint timers and event listeners
     if (hintTimeout) {
-      clearTimeout(hintTimeout);
+      clearTimeout(hintTimeout)
     }
     if (hint2Timeout) {
-      clearTimeout(hint2Timeout);
+      clearTimeout(hint2Timeout)
     }
     if (index === 0) {
-      window.removeEventListener('click', handleUserActivity);
-      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener("click", handleUserActivity)
+      window.removeEventListener("keydown", handleUserActivity)
     }
-  });
+  })
 
   function restartAnalysis() {
     // Terminate existing workers and clear spinner timeouts
     for (const [_, state] of workerStates.entries()) {
       if (state.worker) {
-        state.worker.terminate();
+        state.worker.terminate()
       }
       if (state.spinnerTimeout) {
-        clearTimeout(state.spinnerTimeout);
+        clearTimeout(state.spinnerTimeout)
       }
     }
 
     // Clear state
-    workerStates.clear();
-    workerStates = new Map();
+    workerStates.clear()
+    workerStates = new Map()
 
     // Start analysis for each compatible transform
     for (const { id } of compatibleTransforms) {
-      startWorker(id);
+      startWorker(id)
     }
   }
 
   function startWorker(transformId: string) {
-    const requestId = ++requestCounter;
+    const requestId = ++requestCounter
 
     try {
       // Create worker
-      const worker = new Worker(
-        new URL('./transform.worker.js', import.meta.url),
-        { type: 'module' }
-      );
+      const worker = new Worker(new URL("./transform.worker.js", import.meta.url), {
+        type: "module",
+      })
 
       // Set up delayed spinner display
       const spinnerTimeout = setTimeout(() => {
-        const currentState = workerStates.get(transformId);
-        if (currentState && currentState.requestId === requestId &&
-            (currentState.state === 'pending' || currentState.state === 'running')) {
+        const currentState = workerStates.get(transformId)
+        if (
+          currentState &&
+          currentState.requestId === requestId &&
+          (currentState.state === "pending" || currentState.state === "running")
+        ) {
           workerStates.set(transformId, {
             ...currentState,
-            showSpinner: true
-          });
-          workerStates = new Map(workerStates);
+            showSpinner: true,
+          })
+          workerStates = new Map(workerStates)
         }
-      }, SPINNER_DELAY);
+      }, SPINNER_DELAY)
 
       // Initialize state
       workerStates.set(transformId, {
-        state: 'pending',
+        state: "pending",
         worker,
         result: null,
-        message: 'Starting analysis...',
+        message: "Starting analysis...",
         requestId,
         showSpinner: false,
-        spinnerTimeout
-      });
-      workerStates = new Map(workerStates);
+        spinnerTimeout,
+      })
+      workerStates = new Map(workerStates)
 
       // Handle messages from worker
       worker.onmessage = (event) => {
-        const { requestId: msgRequestId, status, result, message, error } = event.data;
+        const { requestId: msgRequestId, status, result, message, error } = event.data
 
         // Ignore messages from old requests
-        const currentState = workerStates.get(transformId);
+        const currentState = workerStates.get(transformId)
         if (!currentState || currentState.requestId !== msgRequestId) {
-          return;
+          return
         }
 
-        if (status === 'running') {
+        if (status === "running") {
           workerStates.set(transformId, {
             ...currentState,
-            state: 'running',
-            message
-          });
-          workerStates = new Map(workerStates);
-        } else if (status === 'complete') {
+            state: "running",
+            message,
+          })
+          workerStates = new Map(workerStates)
+        } else if (status === "complete") {
           try {
             // Clear spinner timeout since we're done
             if (currentState.spinnerTimeout) {
-              clearTimeout(currentState.spinnerTimeout);
+              clearTimeout(currentState.spinnerTimeout)
             }
 
             // Recreate the inverse function from the main thread
-            const transform = allTransforms[transformId];
-            let inverse = null;
+            const transform = allTransforms[transformId]
+            let inverse = null
             if (result.hasInverse && transform) {
               // Re-run the transform to get the inverse function
-              const freshResult = transform.analyze(step.content, options[transformId]);
-              if ('content' in freshResult) {
-                inverse = freshResult.inverse;
+              const freshResult = transform.analyze(step.content, options[transformId])
+              if ("content" in freshResult) {
+                inverse = freshResult.inverse
               }
             }
 
             const analyzeResult = {
-              score: 'score' in result ? result.score : 0,
-              content: 'content' in result ? result.content : undefined,
-              message: 'message' in result ? result.message : undefined,
+              score: "score" in result ? result.score : 0,
+              content: "content" in result ? result.content : undefined,
+              message: "message" in result ? result.message : undefined,
               inverse,
               from_name: transform?.name || transformId,
               from_id: transformId,
-              display: ('display' in result && result.display)
-                ? result.display
-                : (('content' in result && result.content !== undefined) ? getDisplayName(result.content) : undefined),
+              display:
+                "display" in result && result.display
+                  ? result.display
+                  : "content" in result && result.content !== undefined
+                    ? getDisplayName(result.content)
+                    : undefined,
               optionComponent: transform?.optionsComponent,
-              defaults: transform?.defaults
-            };
+              defaults: transform?.defaults,
+            }
 
             // If the transform returned updated options (e.g., from auto-detection), use them
-            if ('options' in result && result.options) {
-              options[transformId] = result.options;
-              options = { ...options }; // Trigger reactivity
+            if ("options" in result && result.options) {
+              options[transformId] = result.options
+              options = { ...options } // Trigger reactivity
             }
 
             workerStates.set(transformId, {
               ...currentState,
-              state: 'complete',
+              state: "complete",
               result: analyzeResult,
               message: null,
               spinnerTimeout: null,
-              showSpinner: false
-            });
-            workerStates = new Map(workerStates);
+              showSpinner: false,
+            })
+            workerStates = new Map(workerStates)
 
             // Terminate worker
-            worker.terminate();
+            worker.terminate()
 
             // If this transform is currently selected, update the inverse function
             // but don't propagate (onupdate) as that would clear subsequent steps
             // The transform is already applied, we just need to update the inverse
             if (step.transform_id === transformId && analyzeResult.content !== undefined) {
-              step.options = options[transformId];
-              step.inverse = analyzeResult.inverse;
+              step.options = options[transformId]
+              step.inverse = analyzeResult.inverse
             }
           } catch (error) {
-            console.error(`[Step ${index}] Error processing worker result for ${transformId}:`, error);
+            console.error(
+              `[Step ${index}] Error processing worker result for ${transformId}:`,
+              error
+            )
             // Clear spinner timeout on error
             if (currentState.spinnerTimeout) {
-              clearTimeout(currentState.spinnerTimeout);
+              clearTimeout(currentState.spinnerTimeout)
             }
             workerStates.set(transformId, {
               ...currentState,
-              state: 'error',
+              state: "error",
               result: {
                 score: 0,
                 from_name: allTransforms[transformId]?.name || transformId,
                 from_id: transformId,
-                message: `Error processing result: ${error.message}`
+                message: `Error processing result: ${error.message}`,
               },
               message: `Error processing result: ${error.message}`,
               spinnerTimeout: null,
-              showSpinner: false
-            });
-            workerStates = new Map(workerStates);
-            worker.terminate();
+              showSpinner: false,
+            })
+            workerStates = new Map(workerStates)
+            worker.terminate()
           }
-        } else if (status === 'error') {
+        } else if (status === "error") {
           // Clear spinner timeout on error
           if (currentState.spinnerTimeout) {
-            clearTimeout(currentState.spinnerTimeout);
+            clearTimeout(currentState.spinnerTimeout)
           }
           workerStates.set(transformId, {
             ...currentState,
-            state: 'error',
+            state: "error",
             result: {
               score: 0,
               from_name: allTransforms[transformId]?.name || transformId,
               from_id: transformId,
-              message: error || message
+              message: error || message,
             },
             message: error || message,
             spinnerTimeout: null,
-            showSpinner: false
-          });
-          workerStates = new Map(workerStates);
+            showSpinner: false,
+          })
+          workerStates = new Map(workerStates)
 
           // Terminate worker
-          worker.terminate();
+          worker.terminate()
         }
-      };
+      }
 
       worker.onerror = (error) => {
-        console.error(`[Step] Worker error for ${transformId}:`, error);
-        const currentState = workerStates.get(transformId);
+        console.error(`[Step] Worker error for ${transformId}:`, error)
+        const currentState = workerStates.get(transformId)
         if (currentState && currentState.requestId === requestId) {
           // Clear spinner timeout on error
           if (currentState.spinnerTimeout) {
-            clearTimeout(currentState.spinnerTimeout);
+            clearTimeout(currentState.spinnerTimeout)
           }
           workerStates.set(transformId, {
             ...currentState,
-            state: 'error',
+            state: "error",
             result: {
               score: 0,
               from_name: allTransforms[transformId]?.name || transformId,
               from_id: transformId,
-              message: `Worker error: ${error.message}`
+              message: `Worker error: ${error.message}`,
             },
             message: `Worker error: ${error.message}`,
             spinnerTimeout: null,
-            showSpinner: false
-          });
-          workerStates = new Map(workerStates);
+            showSpinner: false,
+          })
+          workerStates = new Map(workerStates)
         }
-        worker.terminate();
-      };
+        worker.terminate()
+      }
 
       // Send message to worker
       worker.postMessage({
         transformId,
         input: step.content,
         options: options[transformId],
-        requestId
-      });
-
+        requestId,
+      })
     } catch (error) {
-      console.error(`[Step] Failed to create worker for ${transformId}:`, error);
+      console.error(`[Step] Failed to create worker for ${transformId}:`, error)
       workerStates.set(transformId, {
-        state: 'error',
+        state: "error",
         worker: null,
         result: {
           score: 0,
           from_name: allTransforms[transformId]?.name || transformId,
           from_id: transformId,
-          message: `Failed to create worker: ${error.message}`
+          message: `Failed to create worker: ${error.message}`,
         },
         message: `Failed to create worker: ${error.message}`,
         requestId,
         showSpinner: false,
-        spinnerTimeout: null
-      });
-      workerStates = new Map(workerStates);
+        spinnerTimeout: null,
+      })
+      workerStates = new Map(workerStates)
     }
   }
 
   function cancelWorker(transformId: string) {
-    const state = workerStates.get(transformId);
-    if (!state) return;
+    const state = workerStates.get(transformId)
+    if (!state) return
 
     // Terminate worker
     if (state.worker) {
-      state.worker.terminate();
+      state.worker.terminate()
     }
 
     // Clear spinner timeout
     if (state.spinnerTimeout) {
-      clearTimeout(state.spinnerTimeout);
+      clearTimeout(state.spinnerTimeout)
     }
 
     // Update state to canceled
     workerStates.set(transformId, {
       ...state,
-      state: 'canceled',
+      state: "canceled",
       result: {
         score: 0,
         from_name: allTransforms[transformId]?.name || transformId,
         from_id: transformId,
-        message: `Analysis canceled. Last status: ${state.message || 'pending'}`
+        message: `Analysis canceled. Last status: ${state.message || "pending"}`,
       },
-      message: `Canceled: ${state.message || 'pending'}`,
+      message: `Canceled: ${state.message || "pending"}`,
       worker: null,
       spinnerTimeout: null,
-      showSpinner: false
-    });
-    workerStates = new Map(workerStates);
+      showSpinner: false,
+    })
+    workerStates = new Map(workerStates)
   }
 
   function retryWorker(transformId: string) {
-    startWorker(transformId);
+    startWorker(transformId)
   }
 
   function handleWorkerClick(transformId: string) {
-    const state = workerStates.get(transformId);
-    if (!state) return;
+    const state = workerStates.get(transformId)
+    if (!state) return
 
-    if (state.state === 'pending' || state.state === 'running') {
+    if (state.state === "pending" || state.state === "running") {
       // Cancel the worker
-      cancelWorker(transformId);
-    } else if (state.state === 'canceled' || state.state === 'error') {
+      cancelWorker(transformId)
+    } else if (state.state === "canceled" || state.state === "error") {
       // Retry the worker
-      retryWorker(transformId);
+      retryWorker(transformId)
     }
   }
 
   function reapplyTransform(transformId: string) {
     // Re-run the worker with the new options
     // First, clear the current worker state to force a re-run
-    const currentState = workerStates.get(transformId);
+    const currentState = workerStates.get(transformId)
     if (currentState?.worker) {
-      currentState.worker.terminate();
+      currentState.worker.terminate()
     }
-    workerStates.delete(transformId);
-    workerStates = new Map(workerStates);
+    workerStates.delete(transformId)
+    workerStates = new Map(workerStates)
 
     // Restart the worker with new options
-    startWorker(transformId);
+    startWorker(transformId)
   }
 
   function handleTransformSelect(transformId: string) {
-    const state = workerStates.get(transformId);
-    if (!state || state.state !== 'complete') {
-      return;
+    const state = workerStates.get(transformId)
+    if (!state || state.state !== "complete") {
+      return
     }
 
     // If clicking on already selected transform, unselect it
     if (step.transform_id === transformId) {
-      step.transform_id = null;
-      step.inverse = undefined;
-      previousTransformId = null;
+      step.transform_id = null
+      step.inverse = undefined
+      previousTransformId = null
 
       // Clear subsequent steps
-      onupdate({ detail: {
-        index,
-        result: null,
-        clearSubsequent: true
-      } });
-      return;
+      onupdate({
+        detail: {
+          index,
+          result: null,
+          clearSubsequent: true,
+        },
+      })
+      return
     }
 
-    const isTransformChange = previousTransformId !== null && previousTransformId !== transformId;
-    step.transform_id = transformId;
-    previousTransformId = transformId;
+    const isTransformChange = previousTransformId !== null && previousTransformId !== transformId
+    step.transform_id = transformId
+    previousTransformId = transformId
 
-    const result = state.result;
+    const result = state.result
 
-    if (result && 'content' in result && result.content !== undefined) {
+    if (result && "content" in result && result.content !== undefined) {
       // Store the inverse function
-      step.inverse = result.inverse;
+      step.inverse = result.inverse
 
       // Pass the result back to parent
-      onupdate({ detail: {
-        index,
-        result: {
-          ...result,
-          nextComponent: result.display
+      onupdate({
+        detail: {
+          index,
+          result: {
+            ...result,
+            nextComponent: result.display,
+          },
+          clearSubsequent: isTransformChange,
         },
-        clearSubsequent: isTransformChange
-      } });
-      return;
+      })
+      return
     }
 
     // Transform failed
-    onupdate({ detail: { index, clearSubsequent: isTransformChange } });
+    onupdate({ detail: { index, clearSubsequent: isTransformChange } })
   }
 
   function handleContentChange(event: any) {
-    const newContent = event.detail?.content !== undefined ? event.detail.content : event.detail;
-    step.content = newContent;
-    onupdate({ detail: { index } });
+    const newContent = event.detail?.content !== undefined ? event.detail.content : event.detail
+    step.content = newContent
+    onupdate({ detail: { index } })
   }
 
   function handlePathSelect(event: any) {
-    const { path, value } = event.detail;
-    console.log(`[Step ${index}] Path selected:`, { path, value });
+    const { path, value } = event.detail
+    console.log(`[Step ${index}] Path selected:`, { path, value })
 
-    const isTransformChange = previousTransformId !== null && previousTransformId !== 'jsonpath_select';
+    const isTransformChange =
+      previousTransformId !== null && previousTransformId !== "jsonpath_select"
 
-    step.options = path;
+    step.options = path
 
     const newOptions = {
       ...options,
-      jsonpath_select: path
-    };
+      jsonpath_select: path,
+    }
 
     // Run jsonpath_select synchronously for immediate feedback
-    const transform = allTransforms['jsonpath_select'];
+    const transform = allTransforms["jsonpath_select"]
     if (transform) {
-      const result = transform.analyze(step.content, newOptions.jsonpath_select);
+      const result = transform.analyze(step.content, newOptions.jsonpath_select)
 
-      if (result && 'content' in result && result.content !== undefined) {
+      if (result && "content" in result && result.content !== undefined) {
         console.log(`[Step ${index}] JSONPath transform applied:`, {
           path,
           resultContent: result.content,
           resultType: typeof result.content,
-          isTransformChange
-        });
+          isTransformChange,
+        })
 
-        step.transform_id = 'jsonpath_select';
-        step.inverse = result.inverse;
-        previousTransformId = 'jsonpath_select';
+        step.transform_id = "jsonpath_select"
+        step.inverse = result.inverse
+        previousTransformId = "jsonpath_select"
 
-        const display = getDisplayName(result.content);
+        const display = getDisplayName(result.content)
 
-        onupdate({ detail: {
-          index,
-          result: {
-            score: result.score,
-            content: result.content,
-            inverse: result.inverse,
-            from_name: transform.name,
-            from_id: 'jsonpath_select',
-            display,
-            nextComponent: display
+        onupdate({
+          detail: {
+            index,
+            result: {
+              score: result.score,
+              content: result.content,
+              inverse: result.inverse,
+              from_name: transform.name,
+              from_id: "jsonpath_select",
+              display,
+              nextComponent: display,
+            },
+            clearSubsequent: isTransformChange,
           },
-          clearSubsequent: isTransformChange
-        } });
+        })
       }
     }
   }
 
   function handleSelectionChange(event: any) {
-    textSelection = event.detail;
-    console.log(`[Step ${index}] Selection changed:`, textSelection);
+    textSelection = event.detail
+    console.log(`[Step ${index}] Selection changed:`, textSelection)
   }
 
   function handleExtractSelection() {
     if (textSelection) {
-      handleTextSelect({ detail: textSelection });
+      handleTextSelect({ detail: textSelection })
     }
   }
 
   function handleTextSelect(event: any) {
-    const { text, start, end } = event.detail;
-    console.log(`[Step ${index}] Text selected:`, { text, start, end });
+    const { text, start, end } = event.detail
+    console.log(`[Step ${index}] Text selected:`, { text, start, end })
 
-    const isTransformChange = previousTransformId !== null && previousTransformId !== 'substring_select';
+    const isTransformChange =
+      previousTransformId !== null && previousTransformId !== "substring_select"
 
-    const substringOptions = JSON.stringify({ start, end });
-    step.options = substringOptions;
+    const substringOptions = JSON.stringify({ start, end })
+    step.options = substringOptions
 
     const newOptions = {
       ...options,
-      substring_select: substringOptions
-    };
+      substring_select: substringOptions,
+    }
 
     // Run substring_select synchronously
-    const transform = allTransforms['substring_select'];
+    const transform = allTransforms["substring_select"]
     if (transform) {
-      const result = transform.analyze(step.content, newOptions.substring_select);
+      const result = transform.analyze(step.content, newOptions.substring_select)
 
-      if (result && 'content' in result && result.content !== undefined) {
+      if (result && "content" in result && result.content !== undefined) {
         console.log(`[Step ${index}] Substring transform applied:`, {
           start,
           end,
           resultContent: result.content,
           resultType: typeof result.content,
-          isTransformChange
-        });
+          isTransformChange,
+        })
 
-        step.transform_id = 'substring_select';
-        step.inverse = result.inverse;
-        previousTransformId = 'substring_select';
+        step.transform_id = "substring_select"
+        step.inverse = result.inverse
+        previousTransformId = "substring_select"
 
-        const display = getDisplayName(result.content);
+        const display = getDisplayName(result.content)
 
-        onupdate({ detail: {
-          index,
-          result: {
-            score: result.score,
-            content: result.content,
-            inverse: result.inverse,
-            from_name: transform.name,
-            from_id: 'substring_select',
-            display,
-            nextComponent: display
+        onupdate({
+          detail: {
+            index,
+            result: {
+              score: result.score,
+              content: result.content,
+              inverse: result.inverse,
+              from_name: transform.name,
+              from_id: "substring_select",
+              display,
+              nextComponent: display,
+            },
+            clearSubsequent: isTransformChange,
           },
-          clearSubsequent: isTransformChange
-        } });
+        })
       }
     }
   }
@@ -681,36 +699,36 @@
         result: state.result,
         message: state.message,
         showSpinner: state.showSpinner,
-        normalizedScore: 0 // Will be calculated below
+        normalizedScore: 0, // Will be calculated below
       }))
-      .filter(item => item.id !== 'jsonpath_select' && item.id !== 'substring_select');
+      .filter((item) => item.id !== "jsonpath_select" && item.id !== "substring_select")
 
     // Calculate total score for normalization
     const total = results
-      .filter(item => item.state === 'complete' && item.result)
-      .reduce((sum, item) => sum + (item.result?.score || 0), 0);
+      .filter((item) => item.state === "complete" && item.result)
+      .reduce((sum, item) => sum + (item.result?.score || 0), 0)
 
     // Calculate normalized scores without mutating original
     if (total > 0) {
-      results.forEach(item => {
-        if (item.state === 'complete' && item.result) {
-          item.normalizedScore = item.result.score / total;
+      results.forEach((item) => {
+        if (item.state === "complete" && item.result) {
+          item.normalizedScore = item.result.score / total
         }
-      });
+      })
     }
 
     // Sort by normalized score (complete items first, then by score)
     results.sort((a, b) => {
-      if (a.state === 'complete' && b.state !== 'complete') return -1;
-      if (a.state !== 'complete' && b.state === 'complete') return 1;
-      if (a.state === 'complete' && b.state === 'complete') {
-        return b.normalizedScore - a.normalizedScore;
+      if (a.state === "complete" && b.state !== "complete") return -1
+      if (a.state !== "complete" && b.state === "complete") return 1
+      if (a.state === "complete" && b.state === "complete") {
+        return b.normalizedScore - a.normalizedScore
       }
-      return 0;
-    });
+      return 0
+    })
 
-    return results;
-  })();
+    return results
+  })()
 </script>
 
 <div class="step-wrapper">
@@ -730,9 +748,7 @@
     {#if showHint && index === 0}
       <div class="hint-message" class:fading={hintFading} role="status" aria-live="polite">
         <div class="hint-arrow" aria-hidden="true">←</div>
-        <div class="hint-text">
-          Paste text or structured data here to get started
-        </div>
+        <div class="hint-text">Paste text or structured data here to get started</div>
       </div>
     {/if}
   </div>
@@ -743,7 +759,7 @@
     {#if textSelection}
       <button
         class="transform-label extract-selection"
-        class:selected={step.transform_id === 'substring_select'}
+        class:selected={step.transform_id === "substring_select"}
         on:click={handleExtractSelection}
         title="Extract selected text to new step"
       >
@@ -753,7 +769,7 @@
 
     <!-- Regular transforms -->
     {#each sortedResults as item (item.id)}
-      {#if item.state === 'complete'}
+      {#if item.state === "complete"}
         <input
           type="radio"
           checked={step.transform_id === item.id}
@@ -766,13 +782,13 @@
           class="transform-label"
           on:click|preventDefault={() => {
             // Handle both select and unselect
-            handleTransformSelect(item.id);
+            handleTransformSelect(item.id)
           }}
         >
           {Math.round(item.normalizedScore * 100) + "% "}
           {item.result?.from_name || item.id}
         </label>
-      {:else if (item.state === 'pending' || item.state === 'running') && item.showSpinner}
+      {:else if (item.state === "pending" || item.state === "running") && item.showSpinner}
         <button
           class="transform-label spinner"
           on:click={() => handleWorkerClick(item.id)}
@@ -781,7 +797,7 @@
           <span class="spinner-icon">{spinnerChars[spinnerFrame]}</span>
           {item.result?.from_name || item.id}
         </button>
-      {:else if item.state === 'canceled'}
+      {:else if item.state === "canceled"}
         <button
           class="transform-label canceled"
           on:click={() => handleWorkerClick(item.id)}
@@ -790,7 +806,7 @@
           <span class="canceled-icon">⏸</span>
           {item.result?.from_name || item.id}
         </button>
-      {:else if item.state === 'error'}
+      {:else if item.state === "error"}
         <button
           class="transform-label error"
           on:click={() => handleWorkerClick(item.id)}
@@ -811,7 +827,7 @@
         bind:value={options[step.transform_id]}
         on:change={() => {
           // Re-run the transform when options change
-          reapplyTransform(step.transform_id);
+          reapplyTransform(step.transform_id)
         }}
       />
     </div>
@@ -828,9 +844,7 @@
   {#if showHint2 && index === 0}
     <div class="hint2-message" class:fading={hint2Fading} role="status" aria-live="polite">
       <div class="hint2-arrow" aria-hidden="true">←</div>
-      <div class="hint2-text">
-        Then select a transformation
-      </div>
+      <div class="hint2-text">Then select a transformation</div>
     </div>
   {/if}
 </div>

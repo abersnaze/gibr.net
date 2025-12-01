@@ -1,53 +1,56 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from "svelte"
 
-  export let content;
-  export let root = undefined;
-  export let path = "";
-  export let depth = 0;
+  export let content
+  export let root = undefined
+  export let path = ""
+  export let depth = 0
 
-  let content_type = typeof content;
-  const dispatch = createEventDispatcher();
+  let content_type = typeof content
+  const dispatch = createEventDispatcher()
 
   // Track collapsed state for this node
-  let collapsed = false;
+  let collapsed = false
 
   // Auto-collapse threshold: objects/arrays with more than this many items
-  const AUTO_COLLAPSE_THRESHOLD = 10;
+  const AUTO_COLLAPSE_THRESHOLD = 10
 
   // Batching configuration
-  const BATCH_SIZE = 100;
+  const BATCH_SIZE = 100
 
   // Determine if this node should be auto-collapsed
   $: {
     if (content_type === "object" && content) {
-      const size = Array.isArray(content) ? content.length : Object.keys(content).length;
+      const size = Array.isArray(content) ? content.length : Object.keys(content).length
       if (size > AUTO_COLLAPSE_THRESHOLD) {
-        collapsed = true;
+        collapsed = true
       }
     }
   }
 
   // Get total number of items
-  $: totalItems = content_type === "object" && content
-    ? (Array.isArray(content) ? content.length : Object.keys(content).length)
-    : 0;
+  $: totalItems =
+    content_type === "object" && content
+      ? Array.isArray(content)
+        ? content.length
+        : Object.keys(content).length
+      : 0
 
   // Check if we need batching
-  $: needsBatching = totalItems > BATCH_SIZE;
+  $: needsBatching = totalItems > BATCH_SIZE
 
   // Create batches with their own collapsed state
   $: batches = (() => {
     if (!needsBatching || content_type !== "object" || !content) {
-      return null;
+      return null
     }
 
-    const totalBatches = Math.ceil(totalItems / BATCH_SIZE);
-    const result = [];
+    const totalBatches = Math.ceil(totalItems / BATCH_SIZE)
+    const result = []
 
     for (let i = 0; i < totalBatches; i++) {
-      const start = i * BATCH_SIZE;
-      const end = Math.min(start + BATCH_SIZE, totalItems);
+      const start = i * BATCH_SIZE
+      const end = Math.min(start + BATCH_SIZE, totalItems)
 
       if (Array.isArray(content)) {
         result.push({
@@ -56,80 +59,84 @@
           items: content.slice(start, end).map((item, idx) => ({
             key: start + idx,
             value: item,
-            isArray: true
+            isArray: true,
           })),
-          collapsed: true // Start collapsed
-        });
+          collapsed: true, // Start collapsed
+        })
       } else {
-        const keys = Object.keys(content);
-        const batchKeys = keys.slice(start, end);
+        const keys = Object.keys(content)
+        const batchKeys = keys.slice(start, end)
         result.push({
           start,
           end: end - 1,
           startKey: batchKeys[0],
           endKey: batchKeys[batchKeys.length - 1],
-          items: batchKeys.map(key => ({
+          items: batchKeys.map((key) => ({
             key,
             value: content[key],
-            isArray: false
+            isArray: false,
           })),
-          collapsed: true // Start collapsed
-        });
+          collapsed: true, // Start collapsed
+        })
       }
     }
 
-    return result;
-  })();
+    return result
+  })()
 
   // Toggle batch collapsed state
   function toggleBatch(batchIndex, event) {
-    event.stopPropagation();
+    event.stopPropagation()
     if (batches) {
-      batches[batchIndex].collapsed = !batches[batchIndex].collapsed;
-      batches = [...batches]; // Trigger reactivity
+      batches[batchIndex].collapsed = !batches[batchIndex].collapsed
+      batches = [...batches] // Trigger reactivity
     }
   }
 
   // Check if a value is complex (object or array)
   function isComplex(value) {
-    return typeof value === 'object' && value !== null;
+    return typeof value === "object" && value !== null
   }
 
   // Get size of object/array for display
   function getSize(value) {
-    if (Array.isArray(value)) return value.length;
-    if (typeof value === 'object' && value !== null) return Object.keys(value).length;
-    return 0;
+    if (Array.isArray(value)) return value.length
+    if (typeof value === "object" && value !== null) return Object.keys(value).length
+    return 0
   }
 
   // Handle selection of a key or value
   function handleSelect(selectedPath, selectedValue) {
-    console.log('[TreeDisplay] Selection:', { path: selectedPath, value: selectedValue });
+    console.log("[TreeDisplay] Selection:", { path: selectedPath, value: selectedValue })
 
     // Dispatch to parent (eventually bubbles up to Step component)
-    dispatch('path-select', {
+    dispatch("path-select", {
       path: selectedPath,
-      value: selectedValue
-    });
+      value: selectedValue,
+    })
   }
 
   // Handle value click - selects that specific value
   function handleValueClick(valuePath, value) {
-    handleSelect(valuePath, value);
+    handleSelect(valuePath, value)
   }
 
   // Toggle collapse/expand
   function toggleCollapse(event) {
-    event.stopPropagation();
-    collapsed = !collapsed;
+    event.stopPropagation()
+    collapsed = !collapsed
   }
 </script>
 
 {#if content_type === "object"}
   {#if Array.isArray(content)}
     <div class="array-container">
-      <button class="toggle-btn" on:click={toggleCollapse} aria-label={collapsed ? 'Expand' : 'Collapse'}>
-        <span class="toggle-icon" class:collapsed>{collapsed ? '▶' : '▼'}</span>
+      <button
+        class="toggle-btn"
+        on:click={toggleCollapse}
+        aria-label={collapsed ? "Expand" : "Collapse"}
+      >
+        <span class="toggle-icon" class:collapsed>{collapsed ? "▶" : "▼"}</span>
         <span class="type-label">[{content.length}]</span>
       </button>
       {#if !collapsed}
@@ -138,8 +145,14 @@
           <div class="batches-container">
             {#each batches as batch, batchIndex}
               <div class="batch-section">
-                <button class="batch-toggle-btn" on:click={(e) => toggleBatch(batchIndex, e)} aria-label={batch.collapsed ? 'Expand' : 'Collapse'}>
-                  <span class="toggle-icon" class:collapsed={batch.collapsed}>{batch.collapsed ? '▶' : '▼'}</span>
+                <button
+                  class="batch-toggle-btn"
+                  on:click={(e) => toggleBatch(batchIndex, e)}
+                  aria-label={batch.collapsed ? "Expand" : "Collapse"}
+                >
+                  <span class="toggle-icon" class:collapsed={batch.collapsed}
+                    >{batch.collapsed ? "▶" : "▼"}</span
+                  >
                   <span class="batch-range">[{batch.start}...{batch.end}]</span>
                 </button>
                 {#if !batch.collapsed}
@@ -162,7 +175,7 @@
           </div>
         {:else}
           <!-- Small array, show all items -->
-          <ol start=0 class="array-list">
+          <ol start="0" class="array-list">
             {#each content as item, idx}
               <li>
                 <svelte:self
@@ -180,8 +193,12 @@
     </div>
   {:else if content}
     <div class="object-container">
-      <button class="toggle-btn" on:click={toggleCollapse} aria-label={collapsed ? 'Expand' : 'Collapse'}>
-        <span class="toggle-icon" class:collapsed>{collapsed ? '▶' : '▼'}</span>
+      <button
+        class="toggle-btn"
+        on:click={toggleCollapse}
+        aria-label={collapsed ? "Expand" : "Collapse"}
+      >
+        <span class="toggle-icon" class:collapsed>{collapsed ? "▶" : "▼"}</span>
         <span class="type-label">{`{${getSize(content)}}`}</span>
       </button>
       {#if !collapsed}
@@ -190,9 +207,15 @@
           <div class="batches-container">
             {#each batches as batch, batchIndex}
               <div class="batch-section">
-                <button class="batch-toggle-btn" on:click={(e) => toggleBatch(batchIndex, e)} aria-label={batch.collapsed ? 'Expand' : 'Collapse'}>
-                  <span class="toggle-icon" class:collapsed={batch.collapsed}>{batch.collapsed ? '▶' : '▼'}</span>
-                  <span class="batch-range">{'{'}{batch.startKey}...{batch.endKey}{'}'}</span>
+                <button
+                  class="batch-toggle-btn"
+                  on:click={(e) => toggleBatch(batchIndex, e)}
+                  aria-label={batch.collapsed ? "Expand" : "Collapse"}
+                >
+                  <span class="toggle-icon" class:collapsed={batch.collapsed}
+                    >{batch.collapsed ? "▶" : "▼"}</span
+                  >
+                  <span class="batch-range">{"{"}{batch.startKey}...{batch.endKey}}</span>
                 </button>
                 {#if !batch.collapsed}
                   <dl class="object-list">
@@ -281,11 +304,11 @@
   <span
     class="clickable-value"
     on:click={() => handleValueClick(path, content)}
-    on:keydown={(e) => e.key === 'Enter' && handleValueClick(path, content)}
+    on:keydown={(e) => e.key === "Enter" && handleValueClick(path, content)}
     role="button"
     tabindex="0"
-    title="Click to select this value"
-  >{content}</span>
+    title="Click to select this value">{content}</span
+  >
 {/if}
 
 <style>

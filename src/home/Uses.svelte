@@ -1,27 +1,19 @@
 <script>
-  import Logo from "./Logo.svelte";
+  import Logo from "./Logo.svelte"
 
-  document.title = "GIBR.net: Things I use";
+  document.title = "GIBR.net: Things I use"
 </script>
 
 <main>
   <h1><Logo /> Things I use.</h1>
-  <p>
-    My day job is writing database abstractions for Netflix. The things I use to
-    do my job are:
-  </p>
+  <p>My day job is writing database abstractions for Netflix. The things I use to do my job are:</p>
   <section>
     <h2>Software</h2>
     <dl>
       <dt><a href="https://www.eclipse.org/">Eclipse</a></dt>
-      <dd>
-        I've been using Eclipse for decades for my work at Apple and Netflix.
-      </dd>
+      <dd>I've been using Eclipse for decades for my work at Apple and Netflix.</dd>
       <dt><a href="https://www.jetbrains.com/idea/">IntelliJ Idea</a></dt>
-      <dd>
-        I've been trying out IntelliJ on a few new projects for the last year or
-        two.
-      </dd>
+      <dd>I've been trying out IntelliJ on a few new projects for the last year or two.</dd>
       <dt><a href="https://code.visualstudio.com">VisualStudio Code</a></dt>
       <dd>For all things not Java.</dd>
       <dt><a href="https://claude.ai/">Claude</a></dt>
@@ -32,10 +24,8 @@
       <dd>default browser</dd>
       <dt><a href="https://www.sourcetreeapp.com/">SourceTree</a></dt>
       <dd>
-        I still use <a
-          href="https://www.perforce.com/downloads/visual-merge-tool"
-          >Pefore Merge</a
-        > for resolving merge conflicts.
+        I still use <a href="https://www.perforce.com/downloads/visual-merge-tool">Pefore Merge</a> for
+        resolving merge conflicts.
       </dd>
     </dl>
   </section>
@@ -51,9 +41,7 @@
       <li><a href="https://github.com/ReactiveX/RxJava">RxJava</a></li>
       <li><a href="https://grpc.io/">gRPC</a></li>
       <li>
-        <a href="https://developers.google.com/protocol-buffers/"
-          >Protocol Bufffers</a
-        >
+        <a href="https://developers.google.com/protocol-buffers/">Protocol Bufffers</a>
       </li>
       <li><a href="https://www.json.org/">JSON</a></li>
       <li><a href="https://cassandra.apache.org/">Cassandra</a></li>
@@ -76,56 +64,40 @@
           >Belkin: Thunderbolt 3 Dock Pro</a
         >
       </dt>
-      <dd>
-        Next to the laptop this is the central hub that everything connects to.
-      </dd>
+      <dd>Next to the laptop this is the central hub that everything connects to.</dd>
       <dt>
-        <a href="https://www.yubico.com/product/yubikey-5c-nano/"
-          >YubiKey: 5C Nano</a
-        >
+        <a href="https://www.yubico.com/product/yubikey-5c-nano/">YubiKey: 5C Nano</a>
       </dt>
-      <dd>
-        I tiny numb on the side of my laptop that I use with Netflix's two
-        factor SSO.
-      </dd>
+      <dd>I tiny numb on the side of my laptop that I use with Netflix's two factor SSO.</dd>
       <dt><a href="https://www.diatec.co.jp/en/det.php?prod_c=763">Filco: Keyboard</a></dt>
       <dd>
-        Tenkeyless size with <a
-          href="https://www.cherrymx.de/cherry-mx/mx-original/mx-blue.html"
+        Tenkeyless size with <a href="https://www.cherrymx.de/cherry-mx/mx-original/mx-blue.html"
           >Cherry MX Blue</a
         > switches.
       </dd>
       <dt>
-        <a href="https://www.apple.com/shop/product/mxk53am/a/magic-mouse-usb-c-white-multi-touch-surface"
+        <a
+          href="https://www.apple.com/shop/product/mxk53am/a/magic-mouse-usb-c-white-multi-touch-surface"
           >Apple: Magic Mouse 2</a
         >
       </dt>
       <dd>Not the best mouse for playing Minecraft but it'll do.</dd>
       <dt>
-        <a
-          href="https://focusrite.com/en/usb-audio-interface/scarlett/scarlett-solo"
+        <a href="https://focusrite.com/en/usb-audio-interface/scarlett/scarlett-solo"
           >Focusrite: Scarlett-Solo
         </a>
       </dt>
       <dd>USB audio interface for my microphone and headphones.</dd>
       <dt>
-        <a href="https://pro.sony/ue_US/products/headphones/mdr-7506"
-          >Sony: MDR-7506</a
-        >
+        <a href="https://pro.sony/ue_US/products/headphones/mdr-7506">Sony: MDR-7506</a>
       </dt>
       <dd>Compfy headphones for long meetings.</dd>
       <dt>Neewer: NW-700 (discontinued)</dt>
-      <dd>
-        Condenser microphone that I got for cheep from a co-worker a couple of
-        years ago.
-      </dd>
+      <dd>Condenser microphone that I got for cheep from a co-worker a couple of years ago.</dd>
       <dt>LG: 34" curved monitor (discontinued)</dt>
       <dd>wide enough all my windows.</dd>
       <dt>Logitech: 4K pro magnetic webcam (discontinued)</dt>
-      <dd>
-        Used some black magnetic tape on the top of the monitor for it to
-        attach.
-      </dd>
+      <dd>Used some black magnetic tape on the top of the monitor for it to attach.</dd>
       <dt>
         <a
           href="https://store.hermanmiller.com/standing-desks/jarvis-bamboo-standing-desk/2542428.html"
@@ -138,10 +110,7 @@
           <li>60"×27" white laminate</li>
           <li>white Jarvis monitor arm</li>
           <li>cable management tray</li>
-          <li>
-            2 power grommets (each grommet has one NEMA 5-15, one USB-A, and one
-            USB-C)
-          </li>
+          <li>2 power grommets (each grommet has one NEMA 5-15, one USB-A, and one USB-C)</li>
           <li>adjustable frame 30.1" to 49.3" range</li>
           <li>height control with programmable memory</li>
           <li>adjustable Keyboard Tray</li>

@@ -1,129 +1,131 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from "svelte"
 
-  export let content: string | number | Date; // ISO string, epoch milliseconds, or Date
+  export let content: string | number | Date // ISO string, epoch milliseconds, or Date
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher()
 
   // Timezone state (default to local)
-  let timezone: 'local' | 'UTC' = 'local';
+  let timezone: "local" | "UTC" = "local"
 
   // Format date with timezone
-  function formatDateWithTimezone(date: Date, tz: 'local' | 'UTC'): string {
-    if (tz === 'UTC') {
-      return date.toISOString();
+  function formatDateWithTimezone(date: Date, tz: "local" | "UTC"): string {
+    if (tz === "UTC") {
+      return date.toISOString()
     } else {
       // Format with local timezone offset
-      const year = date.getFullYear();
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const day = date.getDate().toString().padStart(2, '0');
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      const seconds = date.getSeconds().toString().padStart(2, '0');
-      const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
+      const year = date.getFullYear()
+      const month = (date.getMonth() + 1).toString().padStart(2, "0")
+      const day = date.getDate().toString().padStart(2, "0")
+      const hours = date.getHours().toString().padStart(2, "0")
+      const minutes = date.getMinutes().toString().padStart(2, "0")
+      const seconds = date.getSeconds().toString().padStart(2, "0")
+      const milliseconds = date.getMilliseconds().toString().padStart(3, "0")
 
       // Get timezone offset
-      const offsetMinutes = -date.getTimezoneOffset();
-      const offsetSign = offsetMinutes >= 0 ? '+' : '-';
-      const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60).toString().padStart(2, '0');
-      const offsetMins = (Math.abs(offsetMinutes) % 60).toString().padStart(2, '0');
-      const offset = `${offsetSign}${offsetHours}:${offsetMins}`;
+      const offsetMinutes = -date.getTimezoneOffset()
+      const offsetSign = offsetMinutes >= 0 ? "+" : "-"
+      const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60)
+        .toString()
+        .padStart(2, "0")
+      const offsetMins = (Math.abs(offsetMinutes) % 60).toString().padStart(2, "0")
+      const offset = `${offsetSign}${offsetHours}:${offsetMins}`
 
-      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offset}`;
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offset}`
     }
   }
 
   // Convert content to display format (ISO string with timezone)
   $: displayValue = (() => {
     if (content instanceof Date) {
-      return formatDateWithTimezone(content, timezone);
-    } else if (typeof content === 'number') {
-      return formatDateWithTimezone(new Date(content), timezone);
+      return formatDateWithTimezone(content, timezone)
+    } else if (typeof content === "number") {
+      return formatDateWithTimezone(new Date(content), timezone)
     } else {
-      return content;
+      return content
     }
-  })();
+  })()
 
   // Track the current edited value (before applying)
-  let editedValue = displayValue;
-  let hasChanges = false;
+  let editedValue = displayValue
+  let hasChanges = false
 
   // Update editedValue when content changes from outside
   $: {
-    editedValue = displayValue;
-    hasChanges = false;
+    editedValue = displayValue
+    hasChanges = false
   }
 
   // Validate the current edited value
-  $: dateObj = new Date(editedValue);
-  $: isValid = !isNaN(dateObj.getTime());
-  $: canApply = hasChanges && isValid;
+  $: dateObj = new Date(editedValue)
+  $: isValid = !isNaN(dateObj.getTime())
+  $: canApply = hasChanges && isValid
 
   // Relative date menu state
-  let showRelativeMenu = false;
+  let showRelativeMenu = false
 
   function handleInput(event: Event) {
-    const input = event.target as HTMLInputElement;
-    editedValue = input.value;
-    hasChanges = editedValue !== displayValue;
+    const input = event.target as HTMLInputElement
+    editedValue = input.value
+    hasChanges = editedValue !== displayValue
   }
 
   function handleApply() {
     if (canApply) {
-      dispatch('content-change', { content: new Date(editedValue) });
-      hasChanges = false;
+      dispatch("content-change", { content: new Date(editedValue) })
+      hasChanges = false
     }
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter' && canApply) {
-      event.preventDefault();
-      handleApply();
+    if (event.key === "Enter" && canApply) {
+      event.preventDefault()
+      handleApply()
     }
   }
 
   function setRelativeDate(type: string) {
-    const now = new Date();
+    const now = new Date()
 
     switch (type) {
-      case 'year-ago':
-        now.setFullYear(now.getFullYear() - 1);
-        break;
-      case 'month-ago':
-        now.setMonth(now.getMonth() - 1);
-        break;
-      case 'week-ago':
-        now.setDate(now.getDate() - 7);
-        break;
-      case 'yesterday':
-        now.setDate(now.getDate() - 1);
-        break;
-      case 'now':
+      case "year-ago":
+        now.setFullYear(now.getFullYear() - 1)
+        break
+      case "month-ago":
+        now.setMonth(now.getMonth() - 1)
+        break
+      case "week-ago":
+        now.setDate(now.getDate() - 7)
+        break
+      case "yesterday":
+        now.setDate(now.getDate() - 1)
+        break
+      case "now":
         // Current time, no change needed
-        break;
-      case 'tomorrow':
-        now.setDate(now.getDate() + 1);
-        break;
-      case 'week-from':
-        now.setDate(now.getDate() + 7);
-        break;
-      case 'month-from':
-        now.setMonth(now.getMonth() + 1);
-        break;
-      case 'year-from':
-        now.setFullYear(now.getFullYear() + 1);
-        break;
+        break
+      case "tomorrow":
+        now.setDate(now.getDate() + 1)
+        break
+      case "week-from":
+        now.setDate(now.getDate() + 7)
+        break
+      case "month-from":
+        now.setMonth(now.getMonth() + 1)
+        break
+      case "year-from":
+        now.setFullYear(now.getFullYear() + 1)
+        break
     }
 
-    editedValue = formatDateWithTimezone(now, timezone);
-    hasChanges = editedValue !== displayValue;
-    showRelativeMenu = false;
+    editedValue = formatDateWithTimezone(now, timezone)
+    hasChanges = editedValue !== displayValue
+    showRelativeMenu = false
   }
 
   function handleClickOutside(event: MouseEvent) {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.relative-menu-container')) {
-      showRelativeMenu = false;
+    const target = event.target as HTMLElement
+    if (!target.closest(".relative-menu-container")) {
+      showRelativeMenu = false
     }
   }
 </script>
@@ -141,21 +143,21 @@
         <button
           class="set-to-button"
           type="button"
-          on:click|stopPropagation={() => showRelativeMenu = !showRelativeMenu}
+          on:click|stopPropagation={() => (showRelativeMenu = !showRelativeMenu)}
         >
           Set to ▼
         </button>
         {#if showRelativeMenu}
           <div class="relative-menu">
-            <button type="button" on:click={() => setRelativeDate('year-ago')}>year ago</button>
-            <button type="button" on:click={() => setRelativeDate('month-ago')}>month ago</button>
-            <button type="button" on:click={() => setRelativeDate('week-ago')}>week ago</button>
-            <button type="button" on:click={() => setRelativeDate('yesterday')}>yesterday</button>
-            <button type="button" on:click={() => setRelativeDate('now')}>now</button>
-            <button type="button" on:click={() => setRelativeDate('tomorrow')}>tomorrow</button>
-            <button type="button" on:click={() => setRelativeDate('week-from')}>week from</button>
-            <button type="button" on:click={() => setRelativeDate('month-from')}>month from</button>
-            <button type="button" on:click={() => setRelativeDate('year-from')}>year from</button>
+            <button type="button" on:click={() => setRelativeDate("year-ago")}>year ago</button>
+            <button type="button" on:click={() => setRelativeDate("month-ago")}>month ago</button>
+            <button type="button" on:click={() => setRelativeDate("week-ago")}>week ago</button>
+            <button type="button" on:click={() => setRelativeDate("yesterday")}>yesterday</button>
+            <button type="button" on:click={() => setRelativeDate("now")}>now</button>
+            <button type="button" on:click={() => setRelativeDate("tomorrow")}>tomorrow</button>
+            <button type="button" on:click={() => setRelativeDate("week-from")}>week from</button>
+            <button type="button" on:click={() => setRelativeDate("month-from")}>month from</button>
+            <button type="button" on:click={() => setRelativeDate("year-from")}>year from</button>
           </div>
         {/if}
       </div>
@@ -173,7 +175,7 @@
         class="apply-button"
         disabled={!canApply}
         on:click={handleApply}
-        title={!isValid ? 'Invalid date format' : hasChanges ? 'Apply changes' : 'No changes'}
+        title={!isValid ? "Invalid date format" : hasChanges ? "Apply changes" : "No changes"}
       >
         Apply
       </button>
@@ -249,7 +251,7 @@
   .relative-menu {
     position: absolute;
     left: calc(100% + 0.1em);
-    transform: translateY(calc(-0.5em - 0.3em - 1px - 4.5*2.2em));
+    transform: translateY(calc(-0.5em - 0.3em - 1px - 4.5 * 2.2em));
     background-color: var(--bg-color);
     border: solid thin var(--border-color);
     border-radius: 0.3em;
@@ -288,7 +290,9 @@
     padding: 0.5em;
     font-family: monospace;
     font-size: 1em;
-    transition: border-color 0.2s, background-color 0.2s;
+    transition:
+      border-color 0.2s,
+      background-color 0.2s;
   }
 
   .date-field input.invalid {

@@ -1,13 +1,13 @@
 <script>
-  import Logo from "../home/Logo.svelte";
+  import Logo from "../home/Logo.svelte"
 
-  document.title = "GIBR.net: Minecraft Line Generator";
+  document.title = "GIBR.net: Minecraft Line Generator"
 
-  let start = [-14, 0, -28];
+  let start = [-14, 0, -28]
   // let end = [193, 0, -82];
-  let end = [835, 0, -772];
+  let end = [835, 0, -772]
 
-  $: runs = summarize(points(start, end));
+  $: runs = summarize(points(start, end))
 
   /**
    * generic function for apply a function to vectors
@@ -15,8 +15,8 @@
    * @param args
    */
   function vec(func, ...args) {
-    console.assert(args.length > 0);
-    var len = args[0].length;
+    console.assert(args.length > 0)
+    var len = args[0].length
     for (let a = 1; a < args.length; a++) {
       console.assert(
         args[a].length === len,
@@ -24,17 +24,17 @@
         a,
         args[a].length,
         len
-      );
+      )
     }
-    var result = [];
+    var result = []
     for (let i = 0; i < len; i++) {
-      var slice = [];
+      var slice = []
       for (let a = 0; a < args.length; a++) {
-        slice.push(args[a][i]);
+        slice.push(args[a][i])
       }
-      result.push(func(...slice));
+      result.push(func(...slice))
     }
-    return result;
+    return result
   }
 
   /**
@@ -43,100 +43,93 @@
    * @param end
    */
   function points(start, end) {
-    var points = [start];
+    var points = [start]
 
     // the direction change
-    var delta = vec((s, e) => e - s, start, end);
+    var delta = vec((s, e) => e - s, start, end)
     // the magnitude of the change. used to accrue error
-    var mag = vec(Math.abs, delta);
+    var mag = vec(Math.abs, delta)
     // +/-1 for each dimention for the direction of the steps
-    var sign = vec(Math.sign, delta);
+    var sign = vec(Math.sign, delta)
     // pull out the maximum change as a threshold
-    var threshold = Math.max(...mag);
+    var threshold = Math.max(...mag)
     // start the error at half the maximum (perfect line starts in the middle of the cube)
-    var err = new Array(start.length).fill(threshold / 2);
+    var err = new Array(start.length).fill(threshold / 2)
 
     // start at the beginning
-    var curr = start;
+    var curr = start
     // continue to the end
     for (var step = 0; step < threshold; step++) {
       // add the error incurred from moving
-      err = vec((e, m) => e + m, err, mag);
+      err = vec((e, m) => e + m, err, mag)
       // if the error is higher than the threshold
       // move over one square
-      curr = vec((c, s, e) => (e >= threshold ? c + s : c), curr, sign, err);
+      curr = vec((c, s, e) => (e >= threshold ? c + s : c), curr, sign, err)
       // now that we moved over reduce the error by one threshold
-      err = vec((e) => (e >= threshold ? e - threshold : e), err);
+      err = vec((e) => (e >= threshold ? e - threshold : e), err)
 
       // save the point
-      points.push(curr);
+      points.push(curr)
     }
 
-    return points;
+    return points
   }
 
   function summarize(points) {
-    var steps = [];
-    let index_a = 0;
+    var steps = []
+    let index_a = 0
     while (index_a < points.length - 1) {
-      const point_a = points[index_a];
-      var index_b, point_b, delta;
+      const point_a = points[index_a]
+      var index_b, point_b, delta
       for (
         let index_b_candidate = index_a + 1;
         index_b_candidate < points.length;
         index_b_candidate++
       ) {
-        const point_b_candidate = points[index_b_candidate];
-        const delta_candidate = vec(
-          (a, b) => b - a,
-          point_a,
-          point_b_candidate
-        );
+        const point_b_candidate = points[index_b_candidate]
+        const delta_candidate = vec((a, b) => b - a, point_a, point_b_candidate)
         // we've gone too far
-        const x = delta_candidate.reduce(
-          (s, d) => s + (Math.abs(d) > 1 ? 1 : 0),
-          0
-        );
+        const x = delta_candidate.reduce((s, d) => s + (Math.abs(d) > 1 ? 1 : 0), 0)
         if (x > 1) {
-          console.log("too much", delta_candidate);
-          break;
+          console.log("too much", delta_candidate)
+          break
         }
 
-        index_b = index_b_candidate;
-        point_b = point_b_candidate;
-        delta = delta_candidate;
+        index_b = index_b_candidate
+        point_b = point_b_candidate
+        delta = delta_candidate
       }
-      console.log(index_a, point_a, index_b, point_b);
+      console.log(index_a, point_a, index_b, point_b)
 
-      var move = delta[0] + "," + delta[1] + "," + delta[2];
+      var move = delta[0] + "," + delta[1] + "," + delta[2]
       if (steps.length > 0) {
-        var last_step = steps[steps.length - 1];
+        var last_step = steps[steps.length - 1]
         if (last_step.move === move) {
-          console.log("again", last_step);
-          last_step.times++;
-          last_step.end = point_b;
+          console.log("again", last_step)
+          last_step.times++
+          last_step.end = point_b
         } else {
-          steps.push({ move: move, times: 1, start: point_a, end: point_b });
+          steps.push({ move: move, times: 1, start: point_a, end: point_b })
         }
       } else {
-        steps.push({ move: move, times: 1, start: point_a, end: point_b });
+        steps.push({ move: move, times: 1, start: point_a, end: point_b })
       }
 
-      index_a = index_b;
+      index_a = index_b
     }
-    return steps;
+    return steps
   }
 
-  let highlight = 0;
+  let highlight = 0
   function next(event) {
-    jump(event, highlight < runs.length - 1 ? highlight + 1 : highlight);
+    jump(event, highlight < runs.length - 1 ? highlight + 1 : highlight)
   }
   function prev(event) {
-    jump(event, highlight > 0 ? highlight - 1 : highlight);
+    jump(event, highlight > 0 ? highlight - 1 : highlight)
   }
   function jump(event, i) {
-    highlight = i;
-    document.getElementById(i).scrollIntoView();
+    highlight = i
+    document.getElementById(i).scrollIntoView()
   }
 </script>
 

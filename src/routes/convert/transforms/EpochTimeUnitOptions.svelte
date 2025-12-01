@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from "svelte"
 
-  export let value: string = 'ms';  // Just the unit, not "unit:timezone"
+  export let value: string = "ms" // Just the unit, not "unit:timezone"
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher()
 
   function handleChange(event: Event) {
-    const select = event.target as HTMLSelectElement;
-    value = select.value;
-    dispatch('change', { value });
+    const select = event.target as HTMLSelectElement
+    value = select.value
+    dispatch("change", { value })
   }
 </script>
 

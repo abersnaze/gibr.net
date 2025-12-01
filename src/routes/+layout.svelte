@@ -3,14 +3,18 @@
   // These are replaced by Vite's define plugin at build time
   const version = {
     hash: __GIT_HASH__,
-    date: __BUILD_DATE__
-  };
+    date: __BUILD_DATE__,
+  }
 </script>
 
 <slot />
 
 <div class="version-info">
-  <a href="https://github.com/abersnaze/gibr.net/commit/{version.hash}" target="_blank" rel="noopener">
+  <a
+    href="https://github.com/abersnaze/gibr.net/commit/{version.hash}"
+    target="_blank"
+    rel="noopener"
+  >
     {version.date} · {version.hash.substring(0, 7)}
   </a>
 </div>

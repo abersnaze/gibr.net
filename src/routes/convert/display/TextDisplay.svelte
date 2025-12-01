@@ -1,66 +1,66 @@
 <script>
-  import { afterUpdate, createEventDispatcher } from 'svelte';
+  import { afterUpdate, createEventDispatcher } from "svelte"
 
-  export let content;
+  export let content
 
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte"
 
   // Convert Uint8Array to empty string if accidentally passed to TextDisplay
-  $: displayContent = content instanceof Uint8Array ? '' : content;
-  let textbox;
-  let previousContent = content;
+  $: displayContent = content instanceof Uint8Array ? "" : content
+  let textbox
+  let previousContent = content
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher()
 
   // Threshold for showing truncated view
-  const TRUNCATE_THRESHOLD = 600;
-  const HEAD_CHARS = 300;
-  const TAIL_CHARS = 300;
+  const TRUNCATE_THRESHOLD = 600
+  const HEAD_CHARS = 300
+  const TAIL_CHARS = 300
 
-  let showMore = false;
+  let showMore = false
 
-  $: isLarge = typeof displayContent === 'string' && displayContent.length > TRUNCATE_THRESHOLD;
-  $: truncatedHead = isLarge ? displayContent.substring(0, HEAD_CHARS) : '';
-  $: truncatedTail = isLarge ? displayContent.substring(displayContent.length - TAIL_CHARS) : '';
+  $: isLarge = typeof displayContent === "string" && displayContent.length > TRUNCATE_THRESHOLD
+  $: truncatedHead = isLarge ? displayContent.substring(0, HEAD_CHARS) : ""
+  $: truncatedTail = isLarge ? displayContent.substring(displayContent.length - TAIL_CHARS) : ""
 
   afterUpdate(() => {
     // Only auto-resize when showing full content or content is not large
     if (textbox && (!isLarge || showMore)) {
-      textbox.style.height = "5px";
-      textbox.style.height = `${textbox.scrollHeight}px`;
+      textbox.style.height = "5px"
+      textbox.style.height = `${textbox.scrollHeight}px`
     }
-  });
+  })
 
   // Handle manual content changes with debouncing
-  let debounceTimer;
+  let debounceTimer
   function handleInput(event) {
-    const newContent = event.target.value;
-    content = newContent; // Update binding immediately for UI responsiveness
-    displayContent = newContent; // Also update display content
+    const newContent = event.target.value
+    content = newContent // Update binding immediately for UI responsiveness
+    displayContent = newContent // Also update display content
 
     // Clear selection when user starts typing
-    currentSelection = null;
+    currentSelection = null
 
-    console.log('[TextNode] Input detected:', {
+    console.log("[TextNode] Input detected:", {
       newContent,
       previousContent,
-      contentLength: newContent.length
-    });
+      contentLength: newContent.length,
+    })
 
     // Debounce the propagation event to avoid excessive processing
-    clearTimeout(debounceTimer);
+    clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => {
       if (newContent !== previousContent) {
-        console.log('[TextNode] Dispatching content-change event:', {
+        console.log("[TextNode] Dispatching content-change event:", {
           newContent,
-          previousContent
-        });
-        dispatch('content-change', { content: newContent, previousContent });
-        previousContent = newContent;
+          previousContent,
+        })
+        dispatch("content-change", { content: newContent, previousContent })
+        previousContent = newContent
       } else {
-        console.log('[TextNode] No change detected, not dispatching event');
+        console.log("[TextNode] No change detected, not dispatching event")
       }
-    }, 100); // 100ms debounce for faster testing
+    }, 100) // 100ms debounce for faster testing
   }
 
   // Handle paste events specifically
@@ -68,40 +68,40 @@
     // Let the default paste happen, then trigger handleInput
     setTimeout(() => {
       if (textbox) {
-        handleInput({ target: textbox });
+        handleInput({ target: textbox })
       }
-    }, 0);
+    }, 0)
   }
 
   // Track current selection
-  let currentSelection = null;
+  let currentSelection = null
 
   // Handle text selection - track it and notify parent
   function handleSelection(event) {
-    const textarea = event.target;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
+    const textarea = event.target
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
 
     // Only track if there's an actual selection (not just cursor position)
     if (start !== end) {
-      const selectedText = textarea.value.substring(start, end);
-      console.log('[TextDisplay] Text selected:', {
+      const selectedText = textarea.value.substring(start, end)
+      console.log("[TextDisplay] Text selected:", {
         start,
         end,
-        selectedText
-      });
+        selectedText,
+      })
 
       currentSelection = {
         text: selectedText,
         start,
-        end
-      };
+        end,
+      }
     } else {
-      currentSelection = null;
+      currentSelection = null
     }
 
     // Notify parent of selection change
-    dispatch('selection-change', currentSelection);
+    dispatch("selection-change", currentSelection)
   }
 </script>
 
