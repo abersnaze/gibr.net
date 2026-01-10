@@ -9,8 +9,19 @@ const config = {
       fallback: "index.html",
       precompress: false,
     }),
+
     paths: {
       base: process.env.NODE_ENV === "production" ? "" : "",
+    },
+
+    experimental: {
+      tracing: {
+        server: true,
+      },
+
+      instrumentation: {
+        server: true,
+      },
     },
   },
 }

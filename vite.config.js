@@ -1,3 +1,4 @@
+import { sentrySvelteKit } from "@sentry/sveltekit"
 import { sveltekit } from "@sveltejs/kit/vite"
 import { defineConfig } from "vite"
 import { execSync } from "child_process"
@@ -25,7 +26,13 @@ const gitHash = getGitHash()
 const buildDate = new Date().toISOString().split("T")[0]
 
 export default defineConfig({
-  plugins: [sveltekit()],
+  plugins: [
+    sentrySvelteKit({
+      org: "george-campbell",
+      project: "gibrnet",
+    }),
+    sveltekit(),
+  ],
   define: {
     global: "globalThis",
     __GIT_HASH__: JSON.stringify(gitHash),

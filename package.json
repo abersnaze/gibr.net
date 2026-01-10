@@ -39,6 +39,7 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
+    "@sentry/sveltekit": "^10.32.1",
     "base-58": "^0.0.1",
     "jq-web": "^0.6.2",
     "sirv-cli": "^3.0.1",
