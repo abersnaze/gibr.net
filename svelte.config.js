@@ -13,16 +13,6 @@ const config = {
     paths: {
       base: process.env.NODE_ENV === "production" ? "" : "",
     },
-
-    experimental: {
-      tracing: {
-        server: true,
-      },
-
-      instrumentation: {
-        server: true,
-      },
-    },
   },
 }
 
