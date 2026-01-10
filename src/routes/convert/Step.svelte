@@ -6,11 +6,12 @@
   import TreeDisplay from "./display/TreeDisplay.svelte"
   import DateDisplay from "./display/DateDisplay.svelte"
   import { getDisplayName } from "./model"
+  import type { Step as StepType } from "./model"
   import type { Writable } from "svelte/store"
 
   export let index: number
-  export let step: any
-  export let onupdate: (event: any) => void = () => {}
+  export let step: StepType
+  export let onupdate: (event: CustomEvent) => void = () => {}
 
   // Get pauseAnalysis store from context
   const pauseAnalysis = getContext<Writable<boolean>>("pauseAnalysis")
@@ -161,7 +162,7 @@
     }, 1000)
   }
 
-  function handleUserActivity(event) {
+  function handleUserActivity(_event) {
     // Any user activity dismisses the hint forever
     dismissHint()
   }
@@ -190,7 +191,7 @@
 
   onDestroy(() => {
     // Terminate all workers
-    for (const [_, state] of workerStates.entries()) {
+    for (const state of workerStates.values()) {
       if (state.worker) {
         state.worker.terminate()
       }
@@ -216,7 +217,7 @@
 
   function restartAnalysis() {
     // Terminate existing workers and clear spinner timeouts
-    for (const [_, state] of workerStates.entries()) {
+    for (const state of workerStates.values()) {
       if (state.worker) {
         state.worker.terminate()
       }
@@ -567,13 +568,13 @@
     onupdate({ detail: { index, clearSubsequent: isTransformChange } })
   }
 
-  function handleContentChange(event: any) {
+  function handleContentChange(event: CustomEvent) {
     const newContent = event.detail?.content !== undefined ? event.detail.content : event.detail
     step.content = newContent
     onupdate({ detail: { index } })
   }
 
-  function handlePathSelect(event: any) {
+  function handlePathSelect(event: CustomEvent) {
     const { path, value } = event.detail
     console.log(`[Step ${index}] Path selected:`, { path, value })
 
@@ -625,7 +626,7 @@
     }
   }
 
-  function handleSelectionChange(event: any) {
+  function handleSelectionChange(event: CustomEvent) {
     textSelection = event.detail
     console.log(`[Step ${index}] Selection changed:`, textSelection)
   }
@@ -636,7 +637,7 @@
     }
   }
 
-  function handleTextSelect(event: any) {
+  function handleTextSelect(event: CustomEvent) {
     const { text, start, end } = event.detail
     console.log(`[Step ${index}] Text selected:`, { text, start, end })
 

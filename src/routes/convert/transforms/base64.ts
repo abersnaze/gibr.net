@@ -111,8 +111,8 @@ function getBase64Code(charCode: number, i: number) {
 
 export function bytesToBase64(bytes: Uint8Array): string {
   let result = "",
-    i,
-    l = bytes.length
+    i
+  const l = bytes.length
   for (i = 2; i < l; i += 3) {
     result += base64abc[bytes[i - 2] >> 2]
     result += base64abc[((bytes[i - 2] & 0x03) << 4) | (bytes[i - 1] >> 4)]
@@ -143,10 +143,10 @@ export function base64ToBytes(str: string): Uint8Array {
   if (index !== -1 && index < str.length - 2) {
     throw new Error("Unable to parse base64 string.")
   }
-  let missingOctets = str.endsWith("==") ? 2 : str.endsWith("=") ? 1 : 0,
-    n = str.length,
-    result = new Uint8Array(3 * (n / 4)),
-    buffer
+  const missingOctets = str.endsWith("==") ? 2 : str.endsWith("=") ? 1 : 0
+  const n = str.length
+  const result = new Uint8Array(3 * (n / 4))
+  let buffer
   for (let i = 0, j = 0; i < n; j += 3) {
     buffer =
       (getBase64Code(str.charCodeAt(i++), i) << 18) |
@@ -174,7 +174,7 @@ const transforms: Record<string, Transform> = {
         const content = base64ToBytes(data.replace(/[\s]*/g, ""))
 
         // Provide the inverse function: binary -> base64 string
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (content instanceof Uint8Array) {
             return bytesToBase64(content)
           }
@@ -204,7 +204,7 @@ const transforms: Record<string, Transform> = {
         const content = bytesToBase64(data)
 
         // Provide the inverse function: base64 string -> binary
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (typeof content === "string") {
             return base64ToBytes(content.replace(/[\s]*/g, ""))
           }

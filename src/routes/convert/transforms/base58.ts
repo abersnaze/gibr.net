@@ -119,7 +119,7 @@ const transforms: Record<string, Transform> = {
         const content = base58.decode(data)
 
         // Provide the inverse function: binary -> base58 string
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (content instanceof Uint8Array) {
             return base58.encode(content)
           }
@@ -156,7 +156,7 @@ const transforms: Record<string, Transform> = {
         const content = base58.encode(data)
 
         // Provide the inverse function: base58 string -> binary
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (typeof content === "string") {
             return base58.decode(content)
           }

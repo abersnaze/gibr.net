@@ -17,7 +17,7 @@ const transforms: Record<string, Transform> = {
         const content = fromHexString(data.replace(/[\s]*/g, ""))
 
         // Provide the inverse function: binary -> hex string
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (content instanceof Uint8Array) {
             return toHexString(content)
           }
@@ -42,7 +42,7 @@ const transforms: Record<string, Transform> = {
         const content = toHexString(data)
 
         // Provide the inverse function: hex string -> binary
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (typeof content === "string") {
             return fromHexString(content.replace(/[\s]*/g, ""))
           }

@@ -6,7 +6,7 @@ const transforms: Record<string, Transform> = {
     prev: "TextDisplay",
     // No optionsComponent - substring is selected by highlighting text in TextDisplay
     defaults: JSON.stringify({ start: 0, end: 0 }),
-    analyze: (data: string, options?: string) => {
+    analyze: (data: string | number) => {
       try {
         // Parse options to get start and end indices
         const { start, end } = options ? JSON.parse(options) : { start: 0, end: 0 }

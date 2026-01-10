@@ -8,7 +8,7 @@ const transforms: Record<string, Transform> = {
     // Options component will be set later to avoid circular dependency issues with workers
     optionsComponent: undefined,
     defaults: "ms",
-    analyze: (data: string | number, options?: string) => {
+    analyze: (data: string | number) => {
       try {
         const display = "DateDisplay" as const
 
@@ -78,7 +78,7 @@ const transforms: Record<string, Transform> = {
         }
 
         return { score: 1.5, content: date, inverse, options: unit }
-      } catch (error: any) {
+      } catch (error: unknown) {
         return { score: 0, message: error.message, display: "DateDisplay" }
       }
     },
@@ -121,7 +121,7 @@ const transforms: Record<string, Transform> = {
         }
 
         return { score: 2.0, content: date, inverse }
-      } catch (error: any) {
+      } catch (error: unknown) {
         return { score: 0, message: error.message, display: "DateDisplay" }
       }
     },
@@ -154,7 +154,7 @@ const transforms: Record<string, Transform> = {
         }
 
         return { score: 2.0, content, inverse }
-      } catch (error: any) {
+      } catch (error: unknown) {
         return { score: 0, message: error.message, display: "DateDisplay" }
       }
     },
@@ -187,7 +187,7 @@ const transforms: Record<string, Transform> = {
         }
 
         return { score: 2.0, content, inverse }
-      } catch (error: any) {
+      } catch (error: unknown) {
         return { score: 0, message: error.message, display: "DateDisplay" }
       }
     },
@@ -221,7 +221,7 @@ const transforms: Record<string, Transform> = {
         }
 
         return { score: 2.0, content, inverse }
-      } catch (error: any) {
+      } catch (error: unknown) {
         return { score: 0, message: error.message, display: "DateDisplay" }
       }
     },

@@ -3,8 +3,6 @@
 
   export let content
 
-  import { onMount } from "svelte"
-
   // Convert Uint8Array to empty string if accidentally passed to TextDisplay
   $: displayContent = content instanceof Uint8Array ? "" : content
   let textbox
@@ -64,7 +62,7 @@
   }
 
   // Handle paste events specifically
-  function handlePaste(event) {
+  function handlePaste(_event) {
     // Let the default paste happen, then trigger handleInput
     setTimeout(() => {
       if (textbox) {

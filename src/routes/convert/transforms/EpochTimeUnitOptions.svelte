@@ -13,8 +13,8 @@
 </script>
 
 <div class="epoch-options">
-  <label>Time Unit:</label>
-  <select bind:value on:change={handleChange}>
+  <label for="time-unit-select">Time Unit:</label>
+  <select id="time-unit-select" bind:value on:change={handleChange}>
     <option value="ms">Milliseconds</option>
     <option value="sec">Seconds</option>
     <option value="ns">Nanoseconds</option>

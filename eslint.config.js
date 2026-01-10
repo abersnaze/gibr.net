@@ -16,7 +16,23 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
+        __GIT_HASH__: "readonly",
+        __BUILD_DATE__: "readonly",
       },
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
+      "svelte/no-navigation-without-resolve": "off",
+      "svelte/no-reactive-reassign": "off",
+      "svelte/prefer-svelte-reactivity": "off",
+      "no-control-regex": "off",
+      "no-misleading-character-class": "off",
     },
   },
   {

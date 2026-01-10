@@ -143,7 +143,7 @@
         {#if needsBatching && batches}
           <!-- Show batches as collapsible ranges -->
           <div class="batches-container">
-            {#each batches as batch, batchIndex}
+            {#each batches as batch, batchIndex (batchIndex)}
               <div class="batch-section">
                 <button
                   class="batch-toggle-btn"
@@ -157,7 +157,7 @@
                 </button>
                 {#if !batch.collapsed}
                   <ol start={batch.start} class="array-list">
-                    {#each batch.items as item}
+                    {#each batch.items as item (item.key)}
                       <li>
                         <svelte:self
                           bind:content={item.value}
@@ -176,7 +176,7 @@
         {:else}
           <!-- Small array, show all items -->
           <ol start="0" class="array-list">
-            {#each content as item, idx}
+            {#each content as item, idx (idx)}
               <li>
                 <svelte:self
                   bind:content={item}
@@ -205,7 +205,7 @@
         {#if needsBatching && batches}
           <!-- Show batches as collapsible ranges -->
           <div class="batches-container">
-            {#each batches as batch, batchIndex}
+            {#each batches as batch, batchIndex (batchIndex)}
               <div class="batch-section">
                 <button
                   class="batch-toggle-btn"
@@ -219,7 +219,7 @@
                 </button>
                 {#if !batch.collapsed}
                   <dl class="object-list">
-                    {#each batch.items as item}
+                    {#each batch.items as item (item.key)}
                       {#if item.value !== undefined}
                         {#if isComplex(item.value)}
                           <!-- Complex value: display on next line -->
@@ -260,7 +260,7 @@
         {:else}
           <!-- Small object, show all keys -->
           <dl class="object-list">
-            {#each Object.keys(content) as key}
+            {#each Object.keys(content) as key (key)}
               {#if content[key] !== undefined}
                 {#if isComplex(content[key])}
                   <!-- Complex value: display on next line -->

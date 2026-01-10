@@ -34,7 +34,7 @@ function parseURI(uriString: string) {
   }
 }
 
-function buildURI(components: any) {
+function buildURI(components: unknown) {
   try {
     let uri = `${components.scheme}://`
 
@@ -99,7 +99,7 @@ const transforms: Record<string, Transform> = {
         const content = parseURI(data.trim())
 
         // Provide the inverse function: URI components -> URI string
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           return buildURI(content)
         }
 
@@ -116,7 +116,7 @@ const transforms: Record<string, Transform> = {
   uri_build: {
     name: "URI Build",
     prev: "TreeDisplay",
-    analyze: (data: any) => {
+    analyze: (data: unknown) => {
       try {
         // Check if the object has the required URI component structure
         if (!data || typeof data !== "object" || !data.scheme || !data.host) {
@@ -126,7 +126,7 @@ const transforms: Record<string, Transform> = {
         const content = buildURI(data)
 
         // Provide the inverse function: URI string -> URI components
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (typeof content === "string") {
             return parseURI(content)
           }
@@ -151,7 +151,7 @@ const transforms: Record<string, Transform> = {
         const content = decodeURIComponent(data)
 
         // Provide the inverse function: decoded text -> encoded URI
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (typeof content === "string") {
             return encodeURIComponent(content)
           }
@@ -182,7 +182,7 @@ const transforms: Record<string, Transform> = {
         const content = encodeURIComponent(data)
 
         // Provide the inverse function: encoded URI -> decoded text
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (typeof content === "string") {
             return decodeURIComponent(content)
           }

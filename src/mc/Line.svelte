@@ -161,7 +161,7 @@
     <h2>Instructions</h2>
     <table>
       <tbody>
-        {#each runs as run, i}
+        {#each runs as run, i (i)}
           {#if i === highlight}
             <tr>
               <th>from</th>

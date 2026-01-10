@@ -27,7 +27,7 @@ export interface Success {
 }
 
 export interface Failure {
-  message: any
+  message: unknown
 }
 
 export type Result = Success | Failure
@@ -37,7 +37,7 @@ export interface AnalyzeResult {
   score: number
   display?: DisplayName // Changed from component to string
   content?: Content
-  message?: any
+  message?: unknown
   inverse?: (content: Content, options?: string) => Content
   from_name: string
   from_id: string
@@ -49,7 +49,7 @@ export interface AnalyzeResult {
 export interface Transform {
   name: string
   prev: DisplayName // Changed from component to string
-  analyze: (input: any, options?: string) => Result
+  analyze: (input: unknown, options?: string) => Result
   optionsComponent?: Component<{ props: string }>
   defaults?: string
 }

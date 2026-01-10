@@ -4,12 +4,12 @@ const transforms: Record<string, Transform> = {
   json_stringify: {
     name: "JSON",
     prev: "TreeDisplay",
-    analyze: (data: any) => {
+    analyze: (data: unknown) => {
       try {
         const content = JSON.stringify(data, undefined, 2)
 
         // Provide the inverse function: JSON text -> object
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (typeof content === "string") {
             return JSON.parse(content)
           }
@@ -34,7 +34,7 @@ const transforms: Record<string, Transform> = {
         const content = JSON.parse(data)
 
         // Provide the inverse function: object -> JSON text
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           return JSON.stringify(content, undefined, 2)
         }
 
@@ -71,7 +71,7 @@ const transforms: Record<string, Transform> = {
                 JSON.parse(data.substring(0, mid + 1))
                 // Parsing succeeded or got "unexpected end", error is later
                 left = mid + 1
-              } catch (e) {
+              } catch {
                 const msg = e instanceof Error ? e.message : String(e)
                 // Check if this is an "unexpected end" error
                 if (msg.includes("end of JSON input") || msg.includes("Unexpected end")) {
@@ -88,7 +88,7 @@ const transforms: Record<string, Transform> = {
             if (left < data.length) {
               position = left
             }
-          } catch (e) {
+          } catch {
             // Ignore errors in our position detection
           }
         }

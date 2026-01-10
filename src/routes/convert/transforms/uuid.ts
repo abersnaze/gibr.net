@@ -10,7 +10,7 @@ interface UUIDComponents {
   version: number
   variant: string
   uuid: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 function parseUUID(uuid: string): UUIDComponents {
@@ -80,8 +80,6 @@ function parseVersion1(hex: string, result: UUIDComponents): UUIDComponents {
 
   // Reconstruct 60-bit timestamp (100-nanosecond intervals since 1582-10-15)
   const timestamp = BigInt("0x" + timeHigh + timeMid + timeLow)
-  const gregorianEpoch = BigInt("122192928000000000") // Offset from Unix epoch to Gregorian epoch
-  const unixTimestamp = (timestamp - gregorianEpoch) / BigInt(10000) // Convert to milliseconds
 
   // Store as nanoseconds (100-ns intervals * 100)
   result.timestamp_ns = (timestamp * BigInt(100)).toString()
@@ -173,8 +171,6 @@ function parseVersion6(hex: string, result: UUIDComponents): UUIDComponents {
 
   // Reconstruct 60-bit timestamp
   const timestamp = BigInt("0x" + timeHigh + timeMid + timeLow)
-  const gregorianEpoch = BigInt("122192928000000000")
-  const unixTimestamp = (timestamp - gregorianEpoch) / BigInt(10000)
 
   // Store as nanoseconds (100-ns intervals * 100)
   result.timestamp_ns = (timestamp * BigInt(100)).toString()
@@ -317,8 +313,6 @@ function reconstructVersion6(components: UUIDComponents): string {
   // For v6, timestamp is in big-endian order: high-mid-low
   const timeHigh = ((timestamp >> BigInt(48)) & BigInt(0x0fff)).toString(16).padStart(12, "0")
   const timeMid = ((timestamp >> BigInt(32)) & BigInt(0xffff)).toString(16).padStart(4, "0")
-  const timeLowHigh = ((timestamp >> BigInt(16)) & BigInt(0xffff)).toString(16).padStart(4, "0")
-  const timeLowLow = (timestamp & BigInt(0xffff)).toString(16).padStart(4, "0")
 
   const part1 = timeHigh.slice(0, 8)
   const part2 = timeHigh.slice(8, 12)
@@ -456,7 +450,7 @@ const transforms: Record<string, Transform> = {
     name: "UUID",
     prev: "TreeDisplay",
     defaults: "ms",
-    analyze: (data: any, options?: string) => {
+    analyze: (data: string | number) => {
       try {
         // Type check
         if (typeof data !== "object" || data === null) {

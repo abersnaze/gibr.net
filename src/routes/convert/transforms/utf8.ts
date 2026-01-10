@@ -14,7 +14,7 @@ const transforms: Record<string, Transform> = {
         const content = new TextDecoder("utf8", { fatal: true }).decode(data)
 
         // Provide the inverse function: text -> binary
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (typeof content === "string") {
             return new TextEncoder().encode(content)
           }
@@ -44,7 +44,7 @@ const transforms: Record<string, Transform> = {
         const content = new TextEncoder().encode(data)
 
         // Provide the inverse function: binary -> text
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           if (content instanceof Uint8Array) {
             return new TextDecoder("utf8", { fatal: true }).decode(content)
           }

@@ -1,10 +1,6 @@
 <script lang="ts">
   import Logo from "../../home/Logo.svelte"
   import Step from "./Step.svelte"
-  import TextDisplay from "./display/TextDisplay.svelte"
-  import BinaryDisplay from "./display/BinaryDisplay.svelte"
-  import TreeDisplay from "./display/TreeDisplay.svelte"
-  import DateDisplay from "./display/DateDisplay.svelte"
   import type { DisplayName, Step as StepType, Success } from "./model"
   import { analyze, defaultOpts } from "./transforms/index"
   import { browser } from "$app/environment"
@@ -14,14 +10,6 @@
 
   if (browser) {
     document.title = "GIBR.net: Convert Things"
-  }
-
-  // Map display names to component instances
-  const displayComponents = {
-    TextDisplay: TextDisplay,
-    BinaryDisplay: BinaryDisplay,
-    TreeDisplay: TreeDisplay,
-    DateDisplay: DateDisplay,
   }
 
   // Track the entire conversion chain for bidirectional editing

@@ -1,6 +1,6 @@
 import { type Transform, type Content } from "../model"
 
-function getValueByPath(obj: any, path: string): any {
+function getValueByPath(obj: unknown, path: string): unknown {
   if (!path || path === ".") return obj
 
   // Split and filter out empty strings (from leading/trailing dots)
@@ -30,7 +30,7 @@ function getValueByPath(obj: any, path: string): any {
   return current
 }
 
-function setValueByPath(obj: any, path: string, value: any): any {
+function setValueByPath(obj: unknown, path: string, value: unknown): unknown {
   if (!path || path === ".") return value
 
   // Split and filter out empty strings (from leading/trailing dots)
@@ -77,12 +77,12 @@ const transforms: Record<string, Transform> = {
     prev: "TreeDisplay",
     // No optionsComponent - path is selected by clicking in TreeDisplay
     defaults: ".",
-    analyze: (data: any, path: string = ".") => {
+    analyze: (data: unknown, path: string = ".") => {
       try {
         const content = getValueByPath(data, path)
 
         // Provide the inverse function: selected value -> original object with updated value
-        const inverse = (content: Content, options?: string) => {
+        const inverse = (content: Content) => {
           // Get the original value to determine its type
           const originalValue = getValueByPath(data, path)
           let parsedValue = content

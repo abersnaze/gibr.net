@@ -1,4 +1,5 @@
 // @ts-check
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 /** This script modifies the project to support TS code in .svelte files like:
 

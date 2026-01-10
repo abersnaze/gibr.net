@@ -46,10 +46,10 @@ export const defaultOpts = Object.fromEntries(
   Object.entries(transforms).map(([key, value]) => [key, value.defaults])
 )
 
-export function analyze(src: any, options: any): AnalyzeResult[] {
+export function analyze(src: unknown, options: unknown): AnalyzeResult[] {
   const results = Object.entries(transforms)
     // only show test for compatible transforms - compare display names as strings
-    .filter(([transform_id, transform]) => src.curr === transform.prev)
+    .filter(([_transform_id, transform]) => src.curr === transform.prev)
     .map(([transform_id, transform]): AnalyzeResult => {
       // compute the analysis and results of using this convertion
       const result = transform.analyze(src.content, options[transform_id])
