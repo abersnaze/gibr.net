@@ -1,13 +1,14 @@
 <script>
   import Logo from "../home/Logo.svelte"
+  import IsometricDiagram from "./IsometricDiagram.svelte"
 
   document.title = "GIBR.net: Minecraft Line Generator"
 
-  let start = [-14, 0, -28]
-  // let end = [193, 0, -82];
-  let end = [835, 0, -772]
+  let start = [10, 72, -28]
+  let end = [44, 80, -82]
 
-  $: runs = summarize(points(start, end))
+  $: allPoints = points(start, end)
+  $: runs = summarize(allPoints)
 
   /**
    * generic function for apply a function to vectors
@@ -76,47 +77,34 @@
   }
 
   function summarize(points) {
+    if (points.length === 0) return []
+
     var steps = []
-    let index_a = 0
-    while (index_a < points.length - 1) {
-      const point_a = points[index_a]
-      var index_b, point_b, delta
-      for (
-        let index_b_candidate = index_a + 1;
-        index_b_candidate < points.length;
-        index_b_candidate++
-      ) {
-        const point_b_candidate = points[index_b_candidate]
-        const delta_candidate = vec((a, b) => b - a, point_a, point_b_candidate)
-        // we've gone too far
-        const x = delta_candidate.reduce((s, d) => s + (Math.abs(d) > 1 ? 1 : 0), 0)
-        if (x > 1) {
-          console.log("too much", delta_candidate)
-          break
-        }
 
-        index_b = index_b_candidate
-        point_b = point_b_candidate
-        delta = delta_candidate
-      }
-      console.log(index_a, point_a, index_b, point_b)
+    // Process each consecutive pair of points
+    for (let i = 0; i < points.length - 1; i++) {
+      const point_a = points[i]
+      const point_b = points[i + 1]
+      const delta = vec((a, b) => b - a, point_a, point_b)
+      const move = delta[0] + "," + delta[1] + "," + delta[2]
 
-      var move = delta[0] + "," + delta[1] + "," + delta[2]
+      // Try to group with the previous step if it's the same move
       if (steps.length > 0) {
-        var last_step = steps[steps.length - 1]
+        const last_step = steps[steps.length - 1]
         if (last_step.move === move) {
-          console.log("again", last_step)
+          // Same move, extend the run
           last_step.times++
           last_step.end = point_b
         } else {
+          // Different move, start a new run
           steps.push({ move: move, times: 1, start: point_a, end: point_b })
         }
       } else {
+        // First step
         steps.push({ move: move, times: 1, start: point_a, end: point_b })
       }
-
-      index_a = index_b
     }
+
     return steps
   }
 
@@ -129,7 +117,19 @@
   }
   function jump(event, i) {
     highlight = i
-    document.getElementById(i).scrollIntoView()
+    const element = document.getElementById(i)
+    if (element) {
+      // Scroll the element into view below the sticky diagram
+      const diagram = document.querySelector(".diagram-section")
+      const diagramHeight = diagram ? diagram.offsetHeight : 0
+      const elementTop = element.getBoundingClientRect().top + window.scrollY
+      const offset = diagramHeight + 32 // Add some padding (2rem)
+
+      window.scrollTo({
+        top: elementTop - offset,
+        behavior: "smooth",
+      })
+    }
   }
 </script>
 
@@ -157,35 +157,41 @@
       <input id="endz" bind:value={end[2]} type="number" />
     </div>
   </section>
-  <section>
-    <h2>Instructions</h2>
-    <table>
-      <tbody>
-        {#each runs as run, i (i)}
-          {#if i === highlight}
-            <tr>
-              <th>from</th>
-              <th>do</th>
-              <th>times</th>
-              <th>to</th>
-            </tr>
-          {/if}
-          <tr id={i} class={i === highlight ? "highlight" : undefined}>
-            <td>{run.start}</td>
-            <td>{run.move}</td>
-            <td>{run.times}</td>
-            <td>{run.end}</td>
+  <div class="content-container">
+    <section class="diagram-section">
+      <h2>Visualization</h2>
+      <IsometricDiagram currentStep={highlight} {runs} {allPoints} />
+    </section>
+    <section class="instructions-section">
+      <h2>Instructions</h2>
+      <table>
+        <tbody>
+          {#each runs as run, i (i)}
             {#if i === highlight}
-              <td><button on:click={next}>⬇︎</button></td>
-              <td><button on:click={prev}>⬆︎</button></td>
-            {:else}
-              <td><button on:click={(event) => jump(event, i)}>⬅︎</button></td>
+              <tr>
+                <th>from</th>
+                <th>do</th>
+                <th>times</th>
+                <th>to</th>
+              </tr>
             {/if}
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  </section>
+            <tr id={i} class={i === highlight ? "highlight" : undefined}>
+              <td>{run.start}</td>
+              <td>{run.move}</td>
+              <td>{run.times}</td>
+              <td>{run.end}</td>
+              {#if i === highlight}
+                <td><button on:click={next}>⬇︎</button></td>
+                <td><button on:click={prev}>⬆︎</button></td>
+              {:else}
+                <td><button on:click={(event) => jump(event, i)}>⬅︎</button></td>
+              {/if}
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </section>
+  </div>
 </main>
 
 <style>
@@ -196,6 +202,45 @@
 
   input {
     width: 5rem;
+  }
+
+  .content-container {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+
+  .diagram-section {
+    flex: 0 0 auto;
+    position: sticky;
+    top: 1rem;
+  }
+
+  .instructions-section {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Mobile layout: keep diagram sticky at top */
+  @media (max-width: 768px) {
+    .content-container {
+      flex-direction: column;
+    }
+
+    .diagram-section {
+      position: sticky;
+      top: 1rem;
+      width: 100%;
+      order: -1;
+      z-index: 10;
+      background-color: var(--bg-color, white);
+      padding-bottom: 1rem;
+    }
+
+    .instructions-section {
+      width: 100%;
+    }
   }
 
   td {
