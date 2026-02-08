@@ -25,5 +25,7 @@
     <dd>Tools for convert things to other things</dd>
     <dt><a href="/line">Minecraft Line Generator</a></dt>
     <dd>Tool for drawing diagonal lines</dd>
+    <dt><a href="/decimal">Decimal to Fraction</a></dt>
+    <dd>Convert decimals to fractions with tape measure visualization</dd>
   </dl>
 </main>
