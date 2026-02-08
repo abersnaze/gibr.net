@@ -1,11 +1,100 @@
 <script>
   import Logo from "../home/Logo.svelte"
   import IsometricDiagram from "./IsometricDiagram.svelte"
+  import { onMount } from "svelte"
+  import { replaceState } from "$app/navigation"
 
   document.title = "GIBR.net: Minecraft Line Generator"
 
+  // Initialize from URL params or defaults
   let start = [10, 72, -28]
   let end = [44, 80, -82]
+  let highlight = 0
+  let initialized = false
+
+  onMount(() => {
+    // Load from URL params first (highest priority)
+    const params = new URLSearchParams(window.location.search)
+
+    if (params.has("start")) {
+      const startParam = params.get("start")
+      // Parse format: x10y72z-28
+      const match = startParam.match(/x(-?\d+)y(-?\d+)z(-?\d+)/)
+      if (match) {
+        start = [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
+      }
+    } else {
+      // If no URL params, load from localStorage
+      const savedStart = localStorage.getItem("minecraft-line-start")
+      if (savedStart !== null) {
+        try {
+          const parsed = JSON.parse(savedStart)
+          if (Array.isArray(parsed) && parsed.length === 3) {
+            start = parsed
+          }
+        } catch {
+          // Ignore parse errors, use defaults
+        }
+      }
+    }
+
+    if (params.has("end")) {
+      const endParam = params.get("end")
+      // Parse format: x44y80z-82
+      const match = endParam.match(/x(-?\d+)y(-?\d+)z(-?\d+)/)
+      if (match) {
+        end = [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
+      }
+    } else {
+      // If no URL params, load from localStorage
+      const savedEnd = localStorage.getItem("minecraft-line-end")
+      if (savedEnd !== null) {
+        try {
+          const parsed = JSON.parse(savedEnd)
+          if (Array.isArray(parsed) && parsed.length === 3) {
+            end = parsed
+          }
+        } catch {
+          // Ignore parse errors, use defaults
+        }
+      }
+    }
+
+    // Load highlight from localStorage
+    const savedHighlight = localStorage.getItem("minecraft-line-step")
+    if (savedHighlight !== null) {
+      const parsed = parseInt(savedHighlight)
+      if (!isNaN(parsed)) {
+        highlight = parsed
+      }
+    }
+
+    // Mark as initialized to allow reactive statements to run
+    initialized = true
+  })
+
+  // Update URL and localStorage when start/end changes
+  $: {
+    if (initialized && typeof window !== "undefined") {
+      const params = new URLSearchParams()
+      params.set("start", `x${start[0]}y${start[1]}z${start[2]}`)
+      params.set("end", `x${end[0]}y${end[1]}z${end[2]}`)
+
+      const newUrl = `${window.location.pathname}?${params.toString()}`
+      replaceState({}, "", newUrl)
+
+      // Save to localStorage as well
+      localStorage.setItem("minecraft-line-start", JSON.stringify(start))
+      localStorage.setItem("minecraft-line-end", JSON.stringify(end))
+    }
+  }
+
+  // Save highlight to localStorage when it changes
+  $: {
+    if (initialized && typeof window !== "undefined") {
+      localStorage.setItem("minecraft-line-step", highlight.toString())
+    }
+  }
 
   $: allPoints = points(start, end)
   $: runs = summarize(allPoints)
@@ -79,36 +168,136 @@
   function summarize(points) {
     if (points.length === 0) return []
 
-    var steps = []
-
-    // Process each consecutive pair of points
+    // First, get basic moves
+    var basicMoves = []
     for (let i = 0; i < points.length - 1; i++) {
       const point_a = points[i]
       const point_b = points[i + 1]
       const delta = vec((a, b) => b - a, point_a, point_b)
-      const move = delta[0] + "," + delta[1] + "," + delta[2]
+      basicMoves.push({
+        move: delta[0] + "," + delta[1] + "," + delta[2],
+        from: point_a,
+        to: point_b,
+      })
+    }
 
-      // Try to group with the previous step if it's the same move
-      if (steps.length > 0) {
-        const last_step = steps[steps.length - 1]
-        if (last_step.move === move) {
-          // Same move, extend the run
-          last_step.times++
-          last_step.end = point_b
-        } else {
-          // Different move, start a new run
-          steps.push({ move: move, times: 1, start: point_a, end: point_b })
-        }
+    // Group consecutive identical moves
+    var groupedMoves = []
+    for (let i = 0; i < basicMoves.length; i++) {
+      if (
+        groupedMoves.length > 0 &&
+        groupedMoves[groupedMoves.length - 1].move === basicMoves[i].move
+      ) {
+        groupedMoves[groupedMoves.length - 1].times++
+        groupedMoves[groupedMoves.length - 1].to = basicMoves[i].to
       } else {
-        // First step
-        steps.push({ move: move, times: 1, start: point_a, end: point_b })
+        groupedMoves.push({
+          move: basicMoves[i].move,
+          times: 1,
+          from: basicMoves[i].from,
+          to: basicMoves[i].to,
+        })
       }
+    }
+
+    // Find repeating patterns
+    var steps = []
+    let i = 0
+    while (i < groupedMoves.length) {
+      // Try to find a pattern starting at position i
+      let bestPattern = null
+      let bestRepeat = 1
+
+      // Try pattern lengths from 1 to half of remaining moves
+      const maxPatternLen = Math.floor((groupedMoves.length - i) / 2)
+      for (let patternLen = 1; patternLen <= Math.min(maxPatternLen, 10); patternLen++) {
+        const pattern = groupedMoves.slice(i, i + patternLen)
+        let repeatCount = 1
+
+        // Count how many times this pattern repeats
+        let pos = i + patternLen
+        while (pos + patternLen <= groupedMoves.length) {
+          const candidate = groupedMoves.slice(pos, pos + patternLen)
+          if (
+            candidate.length === pattern.length &&
+            candidate.every(
+              (m, idx) => m.move === pattern[idx].move && m.times === pattern[idx].times
+            )
+          ) {
+            repeatCount++
+            pos += patternLen
+          } else {
+            break
+          }
+        }
+
+        // Keep this pattern if it repeats at least twice and is better than what we found
+        if (
+          repeatCount >= 2 &&
+          repeatCount * patternLen > bestRepeat * (bestPattern?.length || 0)
+        ) {
+          bestPattern = pattern
+          bestRepeat = repeatCount
+        }
+      }
+
+      if (bestPattern && bestRepeat >= 2) {
+        // Found a repeating pattern
+        const patternEnd = groupedMoves[i + bestPattern.length * bestRepeat - 1].to
+
+        // Calculate net movement for one iteration of the pattern
+        let netX = 0,
+          netY = 0,
+          netZ = 0
+        for (const m of bestPattern) {
+          const [x, y, z] = m.move.split(",").map((n) => parseInt(n))
+          netX += x * m.times
+          netY += y * m.times
+          netZ += z * m.times
+        }
+        const netMove = `${netX},${netY},${netZ}`
+
+        // Calculate total number of blocks for visualization
+        const totalBlocks = bestPattern.reduce((sum, m) => sum + m.times, 0) * bestRepeat
+
+        steps.push({
+          move: netMove,
+          times: bestRepeat, // Show pattern repeat count in the table
+          totalBlocks: totalBlocks, // Use this for visualization
+          start: groupedMoves[i].from,
+          end: patternEnd,
+          isPattern: true,
+        })
+        i += bestPattern.length * bestRepeat
+      } else {
+        // No pattern, just add the single move
+        steps.push({
+          move: groupedMoves[i].move,
+          times: groupedMoves[i].times,
+          start: groupedMoves[i].from,
+          end: groupedMoves[i].to,
+          isPattern: false,
+        })
+        i++
+      }
+    }
+
+    // Add a final step to visualize reaching the end
+    if (points.length > 0) {
+      const lastPoint = points[points.length - 1]
+      steps.push({
+        move: "END",
+        times: 1,
+        totalBlocks: 1,
+        start: lastPoint,
+        end: lastPoint,
+        isPattern: false,
+      })
     }
 
     return steps
   }
 
-  let highlight = 0
   function next(event) {
     jump(event, highlight < runs.length - 1 ? highlight + 1 : highlight)
   }

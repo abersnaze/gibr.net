@@ -20,6 +20,30 @@
 </div>
 
 <style>
+  :global(:root) {
+    --bg-color: #ffffff;
+    --card-bg: #f5f5f5;
+    --text-color: #1a1a1a;
+    --text-secondary: #666666;
+    --border-color: #d0d0d0;
+    --primary-color: #4287f5;
+    --danger-color: #f54242;
+    --success-color: #22aa22;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root) {
+      --bg-color: #1a1a1a;
+      --card-bg: #2a2a2a;
+      --text-color: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --border-color: #3a3a3a;
+      --primary-color: #4287f5;
+      --danger-color: #f54242;
+      --success-color: #42f554;
+    }
+  }
+
   .version-info {
     position: fixed;
     bottom: 0.5rem;

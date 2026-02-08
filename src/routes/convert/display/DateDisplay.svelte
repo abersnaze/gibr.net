@@ -338,29 +338,4 @@
   .warning-icon {
     font-weight: bold;
   }
-
-  .date-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3em;
-    padding: 0.5em;
-    background-color: var(--bg-color);
-    border: solid thin var(--border-color);
-    border-radius: 0.3em;
-    font-size: 0.9em;
-  }
-
-  .info-row {
-    display: flex;
-    gap: 0.5em;
-  }
-
-  .info-row .label {
-    opacity: 0.7;
-    min-width: 150px;
-  }
-
-  .info-row .value {
-    font-family: monospace;
-  }
 </style>

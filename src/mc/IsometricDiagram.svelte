@@ -35,7 +35,10 @@
     let newBlockIndex = 0
     if (runs.length > 0 && currentStep < runs.length) {
       for (let i = 0; i < currentStep; i++) {
-        newBlockIndex += runs[i].times
+        const run = runs[i]
+        // Use totalBlocks for patterns, times for regular moves
+        const blockCount = run.totalBlocks !== undefined ? run.totalBlocks : run.times
+        newBlockIndex += blockCount
       }
     }
 
@@ -102,25 +105,29 @@
       let currentStepIndex = 0
       let blockCount = 0
       for (let i = 0; i < runs.length; i++) {
-        if (blockCount + runs[i].times > currentBlockIndex) {
+        const run = runs[i]
+        const runBlockCount = run.totalBlocks !== undefined ? run.totalBlocks : run.times
+        if (blockCount + runBlockCount > currentBlockIndex) {
           currentStepIndex = i
           break
         }
-        blockCount += runs[i].times
+        blockCount += runBlockCount
       }
 
       // Calculate start: go back 5 steps to show more context
       const startStep = Math.max(0, currentStepIndex - 5)
       startBlockIndex = 0
       for (let i = 0; i < startStep; i++) {
-        startBlockIndex += runs[i].times
+        const run = runs[i]
+        startBlockIndex += run.totalBlocks !== undefined ? run.totalBlocks : run.times
       }
 
       // Calculate end: go forward 5 steps from current to extend past viewport
       const endStep = Math.min(runs.length, currentStepIndex + 6) // +6 because we want current + 5 more
       endBlockIndex = 0
       for (let i = 0; i < endStep; i++) {
-        endBlockIndex += runs[i].times
+        const run = runs[i]
+        endBlockIndex += run.totalBlocks !== undefined ? run.totalBlocks : run.times
       }
       endBlockIndex = Math.min(allPoints.length, endBlockIndex)
     }
@@ -159,7 +166,10 @@
     // Calculate the range of blocks in the current run
     let currentRunEndIndex = currentBlockIndex
     if (runs.length > 0 && currentStep < runs.length) {
-      currentRunEndIndex = currentBlockIndex + runs[currentStep].times
+      const run = runs[currentStep]
+      // Use totalBlocks for patterns, times for regular moves
+      const blockCount = run.totalBlocks !== undefined ? run.totalBlocks : run.times
+      currentRunEndIndex = currentBlockIndex + blockCount
     }
 
     // Sort blocks for proper z-ordering (back-to-front, bottom-to-top)
