@@ -81,7 +81,7 @@
       params.set("end", `x${end[0]}y${end[1]}z${end[2]}`)
 
       const newUrl = `${window.location.pathname}?${params.toString()}`
-      replaceState({}, "", newUrl)
+      replaceState(newUrl, {})
 
       // Save to localStorage as well
       localStorage.setItem("minecraft-line-start", JSON.stringify(start))
