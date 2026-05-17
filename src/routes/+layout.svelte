@@ -10,13 +10,17 @@
 <slot />
 
 <div class="version-info">
-  <a
-    href="https://github.com/abersnaze/gibr.net/commit/{version.hash}"
-    target="_blank"
-    rel="noopener"
-  >
-    {version.date} · {version.hash.substring(0, 7)}
-  </a>
+  {#if version.hash}
+    <a
+      href="https://github.com/abersnaze/gibr.net/commit/{version.hash}"
+      target="_blank"
+      rel="noopener"
+    >
+      {version.date} · {version.hash.substring(0, 7)}
+    </a>
+  {:else}
+    {version.date}
+  {/if}
 </div>
 
 <style>

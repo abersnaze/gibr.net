@@ -17,8 +17,8 @@ function getGitHash() {
       console.log("[vite.config.js] Using git hash from environment:", envHash)
       return envHash
     }
-    console.log('[vite.config.js] No git hash available, using "unknown"')
-    return "unknown"
+    console.log("[vite.config.js] No git hash available")
+    return null
   }
 }
 
