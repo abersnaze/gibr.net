@@ -29,7 +29,10 @@ const transforms: Record<string, Transform> = {
   json_parse: {
     name: "JSON",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
+      if (typeof data !== "string") {
+        return { score: 0.0, message: `Expected string, got ${typeof data}` }
+      }
       try {
         const content = JSON.parse(data)
 

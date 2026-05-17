@@ -12,8 +12,11 @@ const transforms: Record<string, Transform> = {
   b16_decode: {
     name: "Base 16",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
       try {
+        if (typeof data !== "string") {
+          return { score: 0.0, message: `Expected string, got ${typeof data}` }
+        }
         const content = fromHexString(data.replace(/[\s]*/g, ""))
 
         // Provide the inverse function: binary -> hex string
@@ -37,8 +40,11 @@ const transforms: Record<string, Transform> = {
   b16_encode: {
     name: "Base 16",
     prev: "BinaryDisplay",
-    analyze: (data: Uint8Array) => {
+    analyze: (data: unknown) => {
       try {
+        if (!(data instanceof Uint8Array)) {
+          return { score: 0.0, message: `Expected Uint8Array, got ${typeof data}` }
+        }
         const content = toHexString(data)
 
         // Provide the inverse function: hex string -> binary

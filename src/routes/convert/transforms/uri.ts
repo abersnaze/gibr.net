@@ -1,6 +1,17 @@
 import { type Transform, type Content } from "../model"
 
-function parseURI(uriString: string) {
+interface URIComponents {
+  scheme: string
+  host: string
+  port?: string | null
+  path?: string | null
+  query?: Record<string, string | string[]> | null
+  fragment?: string | null
+  username?: string | null
+  password?: string | null
+}
+
+function parseURI(uriString: string): URIComponents {
   try {
     const url = new URL(uriString)
 
@@ -34,7 +45,7 @@ function parseURI(uriString: string) {
   }
 }
 
-function buildURI(components: unknown) {
+function buildURI(components: URIComponents) {
   try {
     let uri = `${components.scheme}://`
 
@@ -88,8 +99,11 @@ const transforms: Record<string, Transform> = {
   uri_parse: {
     name: "URI Parse",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
       try {
+        if (typeof data !== "string") {
+          return { score: 0.0, message: `Expected string, got ${typeof data}` }
+        }
         // Only try to parse if it looks like a URI
         const uriPattern = /^[a-zA-Z][a-zA-Z0-9+.-]*:/
         if (!uriPattern.test(data.trim())) {
@@ -100,7 +114,7 @@ const transforms: Record<string, Transform> = {
 
         // Provide the inverse function: URI components -> URI string
         const inverse = (content: Content) => {
-          return buildURI(content)
+          return buildURI(content as URIComponents)
         }
 
         return {
@@ -119,11 +133,18 @@ const transforms: Record<string, Transform> = {
     analyze: (data: unknown) => {
       try {
         // Check if the object has the required URI component structure
-        if (!data || typeof data !== "object" || !data.scheme || !data.host) {
+        if (
+          !data ||
+          typeof data !== "object" ||
+          !("scheme" in data) ||
+          !("host" in data) ||
+          !data.scheme ||
+          !data.host
+        ) {
           return { score: 0.0, message: "Missing required URI components (scheme, host)" }
         }
 
-        const content = buildURI(data)
+        const content = buildURI(data as URIComponents)
 
         // Provide the inverse function: URI string -> URI components
         const inverse = (content: Content) => {
@@ -146,7 +167,10 @@ const transforms: Record<string, Transform> = {
   uri_decode: {
     name: "URI Decode",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
+      if (typeof data !== "string") {
+        return { score: 0.0, message: `Expected string, got ${typeof data}` }
+      }
       try {
         const content = decodeURIComponent(data)
 
@@ -177,7 +201,10 @@ const transforms: Record<string, Transform> = {
   uri_encode: {
     name: "URI Encode",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
+      if (typeof data !== "string") {
+        return { score: 0.0, message: `Expected string, got ${typeof data}` }
+      }
       try {
         const content = encodeURIComponent(data)
 

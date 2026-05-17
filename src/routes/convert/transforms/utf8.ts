@@ -4,7 +4,7 @@ const transforms: Record<string, Transform> = {
   utf8_decode: {
     name: "UTF-8",
     prev: "BinaryDisplay",
-    analyze: (data: Uint8Array) => {
+    analyze: (data: unknown) => {
       try {
         // Type check - ensure data is a Uint8Array
         if (!(data instanceof Uint8Array)) {
@@ -34,7 +34,7 @@ const transforms: Record<string, Transform> = {
   utf8_encode: {
     name: "UTF-8",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
       try {
         // Type check - ensure data is a string
         if (typeof data !== "string") {

@@ -23,7 +23,7 @@ function getValueByPath(obj: unknown, path: string): unknown {
       if (!(key in current)) {
         throw new Error(`Property '${key}' not found`)
       }
-      current = current[key]
+      current = (current as Record<string, unknown>)[key]
     }
   }
 
@@ -105,8 +105,8 @@ const transforms: Record<string, Transform> = {
 
         return {
           score: 1.0,
-          content,
-          inverse,
+          content: content as Content,
+          inverse: inverse as (content: Content) => Content,
         }
       } catch (error) {
         return { score: 0.0, message: error }

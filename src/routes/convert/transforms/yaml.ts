@@ -34,7 +34,10 @@ const transforms: Record<string, Transform> = {
   yaml_parse: {
     name: "YAML",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
+      if (typeof data !== "string") {
+        return { score: 0.0, message: `Expected string, got ${typeof data}` }
+      }
       try {
         const score = data.includes("---\n") ? 2.0 : 0.75
         let content = yaml.parseAllDocuments(data).map((doc) => doc.toJSON())

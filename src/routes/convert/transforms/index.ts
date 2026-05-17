@@ -10,7 +10,7 @@ import { default as substring_transforms } from "./substring.js"
 import { default as uri_transforms } from "./uri.js"
 import { default as uuid_transforms } from "./uuid.js"
 import { default as date_transforms } from "./date.js"
-import { getDisplayName, type Transform, type AnalyzeResult } from "../model.js"
+import { getDisplayName, type Transform, type AnalyzeResult, type Step } from "../model.js"
 
 const transforms: Record<string, Transform> = Object.assign(
   b16_transforms,
@@ -28,7 +28,7 @@ const transforms: Record<string, Transform> = Object.assign(
 
 // Attach options component only in main thread (not in worker)
 // Workers don't need UI components, only transform logic
-if (typeof window !== "undefined" && typeof importScripts === "undefined") {
+if (typeof window !== "undefined" && !("importScripts" in globalThis)) {
   import("./EpochTimeUnitOptions.svelte").then((module) => {
     if (transforms.epoch_to_date) {
       transforms.epoch_to_date.optionsComponent = module.default
@@ -46,7 +46,7 @@ export const defaultOpts = Object.fromEntries(
   Object.entries(transforms).map(([key, value]) => [key, value.defaults])
 )
 
-export function analyze(src: unknown, options: unknown): AnalyzeResult[] {
+export function analyze(src: Step, options: Record<string, string | undefined>): AnalyzeResult[] {
   const results = Object.entries(transforms)
     // only show test for compatible transforms - compare display names as strings
     .filter(([_transform_id, transform]) => src.curr === transform.prev)

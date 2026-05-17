@@ -9,21 +9,22 @@ export type Content = TextContent | BinaryContent | TreeContent | DateContent
 
 // Display types as string literals instead of component references
 export type DisplayName = "TextDisplay" | "BinaryDisplay" | "TreeDisplay" | "DateDisplay"
-export type OptionComponent = Component<{ content: string }>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type OptionComponent = Component<any>
 
 export interface Step {
   content: Content
-  curr: DisplayName // Changed from component to string
+  curr: DisplayName
   transform_id: string | null
   options?: string
-  inverse?: (content: Content, options?: string) => Content // Store inverse function
+  inverse?: (content: Content, options?: string) => Content
 }
 
 export interface Success {
   score: number
   content: Content
-  inverse?: (content: Content, options?: string) => Content // Function to reverse this transform
-  options?: string // Options that were actually used (e.g., after auto-detection)
+  inverse?: (content: Content, options?: string) => Content
+  options?: string
 }
 
 export interface Failure {
@@ -35,7 +36,7 @@ export type Result = Success | Failure
 // Extended result type returned by the analyze function in index.ts
 export interface AnalyzeResult {
   score: number
-  display?: DisplayName // Changed from component to string
+  display?: DisplayName
   content?: Content
   message?: unknown
   inverse?: (content: Content, options?: string) => Content
@@ -48,9 +49,9 @@ export interface AnalyzeResult {
 
 export interface Transform {
   name: string
-  prev: DisplayName // Changed from component to string
+  prev: DisplayName
   analyze: (input: unknown, options?: string) => Result
-  optionsComponent?: Component<{ props: string }>
+  optionsComponent?: OptionComponent
   defaults?: string
 }
 

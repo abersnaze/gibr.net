@@ -103,7 +103,10 @@ const transforms: Record<string, Transform> = {
   base58_decode: {
     name: "Base 58",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
+      if (typeof data !== "string") {
+        return { score: 0.0, message: `Expected string, got ${typeof data}` }
+      }
       // Base58 decoding also has O(n²) complexity for large inputs
       const MAX_SIZE = 100 * 1024 // 100KB limit for base58 strings
 
@@ -139,7 +142,10 @@ const transforms: Record<string, Transform> = {
   base58_encode: {
     name: "Base 58",
     prev: "BinaryDisplay",
-    analyze: (data: Uint8Array) => {
+    analyze: (data: unknown) => {
+      if (!(data instanceof Uint8Array)) {
+        return { score: 0.0, message: `Expected Uint8Array, got ${typeof data}` }
+      }
       // Base58 encoding has O(n²) complexity and is impractical for large inputs
       // Typical use cases are small data like hashes or addresses
       const MAX_SIZE = 64 * 1024 // 64KB limit

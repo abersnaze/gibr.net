@@ -1,4 +1,4 @@
-import { type Transform } from "../model"
+import { type Transform, type Content } from "../model"
 
 const transforms: Record<string, Transform> = {
   // Parse epoch time to Date object with configurable unit
@@ -8,9 +8,13 @@ const transforms: Record<string, Transform> = {
     // Options component will be set later to avoid circular dependency issues with workers
     optionsComponent: undefined,
     defaults: "ms",
-    analyze: (data: string | number, options?: string) => {
+    analyze: (data: unknown, options?: string) => {
       try {
         const display = "DateDisplay" as const
+
+        if (typeof data !== "string" && typeof data !== "number") {
+          return { score: 0, message: `Expected string or number, got ${typeof data}`, display }
+        }
 
         // Reject empty input
         if (typeof data === "string" && data.trim() === "") {
@@ -58,10 +62,10 @@ const transforms: Record<string, Transform> = {
         }
 
         // Inverse: convert Date back to epoch in the specified unit
-        const inverse = (dateInput: Date | string, opts?: string) => {
+        const inverse = (dateInput: Content, opts?: string) => {
           const inverseUnit = opts || options || "ms"
           const epochMs =
-            dateInput instanceof Date ? dateInput.getTime() : new Date(dateInput).getTime()
+            dateInput instanceof Date ? dateInput.getTime() : new Date(String(dateInput)).getTime()
 
           // If the date is invalid, return empty string to avoid NaN propagation
           if (isNaN(epochMs)) {
@@ -79,7 +83,11 @@ const transforms: Record<string, Transform> = {
 
         return { score: 1.5, content: date, inverse, options: unit }
       } catch (error: unknown) {
-        return { score: 0, message: error.message, display: "DateDisplay" }
+        return {
+          score: 0,
+          message: error instanceof Error ? error.message : String(error),
+          display: "DateDisplay",
+        }
       }
     },
   },
@@ -88,7 +96,7 @@ const transforms: Record<string, Transform> = {
   date_from_iso: {
     name: "Date (from ISO)",
     prev: "TextDisplay",
-    analyze: (data: string | number) => {
+    analyze: (data: unknown) => {
       try {
         const display = "DateDisplay" as const
 
@@ -116,13 +124,17 @@ const transforms: Record<string, Transform> = {
         }
 
         // Inverse: return the Date object as-is (DateDisplay handles formatting)
-        const inverse = (dateInput: Date | string) => {
-          return dateInput instanceof Date ? dateInput : new Date(dateInput)
+        const inverse = (dateInput: Content) => {
+          return dateInput instanceof Date ? dateInput : new Date(String(dateInput))
         }
 
         return { score: 2.0, content: date, inverse }
       } catch (error: unknown) {
-        return { score: 0, message: error.message, display: "DateDisplay" }
+        return {
+          score: 0,
+          message: error instanceof Error ? error.message : String(error),
+          display: "DateDisplay",
+        }
       }
     },
   },
@@ -131,9 +143,9 @@ const transforms: Record<string, Transform> = {
   date_to_epoch_ms: {
     name: "Epoch (milliseconds)",
     prev: "DateDisplay",
-    analyze: (data: string | Date) => {
+    analyze: (data: unknown) => {
       try {
-        const date = data instanceof Date ? data : new Date(data)
+        const date = data instanceof Date ? data : new Date(data as string)
         if (isNaN(date.getTime())) {
           return { score: 0, message: "Invalid date" }
         }
@@ -141,8 +153,8 @@ const transforms: Record<string, Transform> = {
         const content = date.getTime().toString()
 
         // Inverse: convert epoch milliseconds back to Date
-        const inverse = (epochMs: string) => {
-          const ms = parseInt(epochMs, 10)
+        const inverse = (epochMs: Content) => {
+          const ms = parseInt(String(epochMs), 10)
           if (isNaN(ms)) {
             return ""
           }
@@ -155,7 +167,11 @@ const transforms: Record<string, Transform> = {
 
         return { score: 2.0, content, inverse }
       } catch (error: unknown) {
-        return { score: 0, message: error.message, display: "DateDisplay" }
+        return {
+          score: 0,
+          message: error instanceof Error ? error.message : String(error),
+          display: "DateDisplay",
+        }
       }
     },
   },
@@ -164,9 +180,9 @@ const transforms: Record<string, Transform> = {
   date_to_epoch_sec: {
     name: "Epoch (seconds)",
     prev: "DateDisplay",
-    analyze: (data: string | Date) => {
+    analyze: (data: unknown) => {
       try {
-        const date = data instanceof Date ? data : new Date(data)
+        const date = data instanceof Date ? data : new Date(data as string)
         if (isNaN(date.getTime())) {
           return { score: 0, message: "Invalid date" }
         }
@@ -174,8 +190,8 @@ const transforms: Record<string, Transform> = {
         const content = Math.floor(date.getTime() / 1000).toString()
 
         // Inverse: convert epoch seconds back to Date
-        const inverse = (epochSec: string) => {
-          const sec = parseInt(epochSec, 10)
+        const inverse = (epochSec: Content) => {
+          const sec = parseInt(String(epochSec), 10)
           if (isNaN(sec)) {
             return ""
           }
@@ -188,7 +204,11 @@ const transforms: Record<string, Transform> = {
 
         return { score: 2.0, content, inverse }
       } catch (error: unknown) {
-        return { score: 0, message: error.message, display: "DateDisplay" }
+        return {
+          score: 0,
+          message: error instanceof Error ? error.message : String(error),
+          display: "DateDisplay",
+        }
       }
     },
   },
@@ -197,9 +217,9 @@ const transforms: Record<string, Transform> = {
   date_to_epoch_ns: {
     name: "Epoch (nanoseconds)",
     prev: "DateDisplay",
-    analyze: (data: string | Date) => {
+    analyze: (data: unknown) => {
       try {
-        const date = data instanceof Date ? data : new Date(data)
+        const date = data instanceof Date ? data : new Date(data as string)
         if (isNaN(date.getTime())) {
           return { score: 0, message: "Invalid date" }
         }
@@ -207,8 +227,8 @@ const transforms: Record<string, Transform> = {
         const content = (date.getTime() * 1000000).toString()
 
         // Inverse: convert epoch nanoseconds back to Date
-        const inverse = (epochNs: string) => {
-          const ns = parseInt(epochNs, 10)
+        const inverse = (epochNs: Content) => {
+          const ns = parseInt(String(epochNs), 10)
           if (isNaN(ns)) {
             return ""
           }
@@ -222,7 +242,11 @@ const transforms: Record<string, Transform> = {
 
         return { score: 2.0, content, inverse }
       } catch (error: unknown) {
-        return { score: 0, message: error.message, display: "DateDisplay" }
+        return {
+          score: 0,
+          message: error instanceof Error ? error.message : String(error),
+          display: "DateDisplay",
+        }
       }
     },
   },

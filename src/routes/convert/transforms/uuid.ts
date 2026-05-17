@@ -10,6 +10,18 @@ interface UUIDComponents {
   version: number
   variant: string
   uuid: string
+  timestamp_ns?: string
+  timestamp_ms?: string
+  clock_sequence?: number
+  node?: string
+  random?: string
+  subsec?: string
+  custom?: string
+  hash?: string
+  hash_algorithm?: string
+  local_domain?: string
+  local_id?: number
+  description?: string
   [key: string]: unknown
 }
 
@@ -411,7 +423,7 @@ const transforms: Record<string, Transform> = {
   uuid_parse: {
     name: "UUID",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
       try {
         // Type check
         if (typeof data !== "string") {
@@ -450,7 +462,7 @@ const transforms: Record<string, Transform> = {
     name: "UUID",
     prev: "TreeDisplay",
     defaults: "ms",
-    analyze: (data: string | number) => {
+    analyze: (data: unknown, options?: string) => {
       try {
         // Type check
         if (typeof data !== "object" || data === null) {

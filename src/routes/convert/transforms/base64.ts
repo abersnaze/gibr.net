@@ -164,7 +164,7 @@ const transforms: Record<string, Transform> = {
   b64_decode: {
     name: "Base 64",
     prev: "TextDisplay",
-    analyze: (data: string) => {
+    analyze: (data: unknown) => {
       try {
         // Type check - ensure data is a string
         if (typeof data !== "string") {
@@ -194,7 +194,7 @@ const transforms: Record<string, Transform> = {
   b64_encode: {
     name: "Base 64",
     prev: "BinaryDisplay",
-    analyze: (data: Uint8Array) => {
+    analyze: (data: unknown) => {
       try {
         // Type check - ensure data is a Uint8Array
         if (!(data instanceof Uint8Array)) {
