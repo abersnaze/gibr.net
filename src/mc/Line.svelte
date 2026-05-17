@@ -2,7 +2,6 @@
   import Logo from "../home/Logo.svelte"
   import IsometricDiagram from "./IsometricDiagram.svelte"
   import { onMount } from "svelte"
-  import { replaceState } from "$app/navigation"
 
   document.title = "GIBR.net: Minecraft Line Generator"
 
@@ -81,7 +80,7 @@
       params.set("end", `x${end[0]}y${end[1]}z${end[2]}`)
 
       const newUrl = `${window.location.pathname}?${params.toString()}`
-      replaceState(newUrl, {})
+      history.replaceState(history.state, "", newUrl)
 
       // Save to localStorage as well
       localStorage.setItem("minecraft-line-start", JSON.stringify(start))
