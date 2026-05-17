@@ -8,7 +8,7 @@ const transforms: Record<string, Transform> = {
     // Options component will be set later to avoid circular dependency issues with workers
     optionsComponent: undefined,
     defaults: "ms",
-    analyze: (data: string | number) => {
+    analyze: (data: string | number, options?: string) => {
       try {
         const display = "DateDisplay" as const
 
