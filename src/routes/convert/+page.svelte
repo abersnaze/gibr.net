@@ -101,6 +101,7 @@
             // We need to re-analyze and re-apply the transform for this step
             const nextStepResult = reapplyTransform(steps[i])
             if (nextStepResult) {
+              steps[i].inverse = nextStepResult.inverse
               steps[i + 1] = {
                 content: nextStepResult.content,
                 curr: nextStepResult.nextComponent || "TextDisplay",
@@ -168,6 +169,8 @@
     console.debug(`[Convert] Pausing analysis for inverse propagation from step ${startIndex}`)
     pauseAnalysis.set(true)
 
+    console.group(`[Convert] ▶ inverse propagation from step ${startIndex}`)
+
     // Work backwards from the edited step to step 0
     for (let i = startIndex - 1; i >= 0; i--) {
       const currentStep = steps[i]
@@ -180,6 +183,12 @@
           // Use the stored inverse which has the original data captured
           // Pass the options so transforms like substring_select know where to insert the content
           const newContent = currentStep.inverse(nextStep.content, currentStep.options)
+          console.debug(
+            `[Convert]   step ${i + 1}→${i} via inverse(${currentStep.transform_id}):`,
+            nextStep.content,
+            "→",
+            newContent
+          )
           steps[i] = {
             ...currentStep,
             content: newContent,
@@ -196,6 +205,8 @@
       }
     }
 
+    console.debug(`[Convert] ◀ inverse propagation done, re-propagating forward`)
+
     // Propagate forward from step 0 to re-apply all transforms
     // since the backward propagation updated step 0's content
     propagateForward(0)
@@ -203,12 +214,13 @@
     // Trigger reactivity and resume analysis
     steps = [...steps]
     await tick() // Wait for DOM update
-    console.debug("[Convert] Resuming analysis after inverse propagation")
+    console.groupEnd()
     pauseAnalysis.set(false)
   }
 
   // Helper function to propagate changes forward through the chain
   function propagateForward(startIndex) {
+    console.group(`[Convert] ▶ forward propagation from step ${startIndex}`)
     for (let i = startIndex; i < steps.length - 1; i++) {
       const currentStep = steps[i]
 
@@ -240,12 +252,22 @@
         const nextStepResult = reapplyTransform(currentStep)
 
         if (nextStepResult && nextStepResult.content !== undefined) {
+          steps[i].inverse = nextStepResult.inverse
+          console.debug(
+            `[Convert]   step ${i}→${i + 1} via ${currentStep.transform_id}:`,
+            currentStep.content,
+            "→",
+            nextStepResult.content
+          )
           steps[i + 1] = {
             ...steps[i + 1],
             content: nextStepResult.content,
             curr: nextStepResult.nextComponent || "TextDisplay",
           }
         } else {
+          console.debug(
+            `[Convert]   step ${i} transform ${currentStep.transform_id} failed, clearing subsequent steps`
+          )
           // Transform failed - clear subsequent steps
           for (let j = i + 1; j < steps.length; j++) {
             // Set appropriate empty content based on the existing display type
@@ -270,6 +292,7 @@
         break
       }
     }
+    console.groupEnd()
   }
 </script>
 

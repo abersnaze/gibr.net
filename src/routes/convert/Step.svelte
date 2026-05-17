@@ -301,8 +301,14 @@
             const transform = allTransforms[transformId]
             let inverse = null
             if (result.hasInverse && transform) {
-              // Re-run the transform to get the inverse function
-              const freshResult = transform.analyze(step.content, options[transformId])
+              // Use step.options when this is the selected transform — it holds the actual
+              // options from user interaction (e.g. jsonpath path, substring range) which
+              // may differ from the component-level options[transformId] default.
+              const effectiveOptions =
+                transformId === step.transform_id && step.options != null
+                  ? step.options
+                  : options[transformId]
+              const freshResult = transform.analyze(step.content, effectiveOptions)
               if ("content" in freshResult) {
                 inverse = freshResult.inverse
               }
@@ -346,9 +352,11 @@
 
             // If this transform is currently selected, update the inverse function
             // but don't propagate (onupdate) as that would clear subsequent steps
-            // The transform is already applied, we just need to update the inverse
+            // The transform is already applied, we just need to update the inverse.
+            // Do NOT overwrite step.options here — for display-driven transforms like
+            // jsonpath_select and substring_select, step.options is set by user interaction
+            // and options[transformId] holds the wrong default (e.g. "." vs ".a").
             if (step.transform_id === transformId && analyzeResult.content !== undefined) {
-              step.options = options[transformId]
               step.inverse = analyzeResult.inverse
             }
           } catch (error) {
@@ -829,7 +837,7 @@
         this={selected_result.optionComponent}
         bind:value={options[step.transform_id]}
         on:change={() => {
-          // Re-run the transform when options change
+          step.options = options[step.transform_id]
           reapplyTransform(step.transform_id)
         }}
       />

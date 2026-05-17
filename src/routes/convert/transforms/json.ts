@@ -71,7 +71,7 @@ const transforms: Record<string, Transform> = {
                 JSON.parse(data.substring(0, mid + 1))
                 // Parsing succeeded or got "unexpected end", error is later
                 left = mid + 1
-              } catch {
+              } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 // Check if this is an "unexpected end" error
                 if (msg.includes("end of JSON input") || msg.includes("Unexpected end")) {
