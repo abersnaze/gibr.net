@@ -747,6 +747,7 @@
       <svelte:component
         this={currentComponent}
         bind:content={step.content}
+        selectedPath={step.transform_id === "jsonpath_select" ? step.options : undefined}
         on:content-change={handleContentChange}
         on:path-select={handlePathSelect}
         on:selection-change={handleSelectionChange}
@@ -764,6 +765,17 @@
 
   <!-- Transform menu -->
   <div class="transform-menu">
+    <!-- JSONPath selection chip (shown when a tree path is selected) -->
+    {#if step.transform_id === "jsonpath_select"}
+      <button
+        class="transform-label selected"
+        on:click={() => handleTransformSelect("jsonpath_select")}
+        title="Click to clear path selection"
+      >
+        Selection
+      </button>
+    {/if}
+
     <!-- Extract Selection option (shown when text is selected) -->
     {#if textSelection}
       <button
@@ -772,7 +784,7 @@
         on:click={handleExtractSelection}
         title="Extract selected text to new step"
       >
-        Extract Selection
+        Selection
       </button>
     {/if}
 
@@ -982,11 +994,6 @@
     display: none;
   }
 
-  .transform-radio:checked + .transform-label {
-    background-color: var(--text-color);
-    color: var(--bg-color);
-  }
-
   .transform-label {
     background-color: var(--bg-color);
     color: var(--text-color);
@@ -1036,7 +1043,8 @@
     cursor: pointer;
   }
 
-  .extract-selection.selected {
+  .transform-radio:checked + .transform-label,
+  .transform-label.selected {
     background-color: var(--text-color);
     color: var(--bg-color);
   }
