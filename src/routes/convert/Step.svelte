@@ -31,9 +31,14 @@
   // Get the actual component from the display name
   $: currentComponent = displayComponents[step.curr] || TextDisplay
 
+  // Persistent workers, one per transform, reused across analysis runs.
+  // A worker is only replaced when it's busy with a stale request, canceled,
+  // errored, or the component is destroyed.
+  let workers = new Map() // transformId -> Worker
+
   // Worker state tracking
   // State: 'pending' | 'running' | 'complete' | 'canceled' | 'error'
-  let workerStates = new Map() // transformId -> { state, worker, result, message, requestId, showSpinner, spinnerTimeout }
+  let workerStates = new Map() // transformId -> { state, result, message, requestId, showSpinner, spinnerTimeout }
   let requestCounter = 0
 
   // Delay before showing spinner (ms) to avoid flashing during fast analysis
@@ -191,9 +196,15 @@
 
   onDestroy(() => {
     // Terminate all workers
+    for (const worker of workers.values()) {
+      worker.terminate()
+    }
+    workers.clear()
+
+    // Clear pending spinner timeouts
     for (const state of workerStates.values()) {
-      if (state.worker) {
-        state.worker.terminate()
+      if (state.spinnerTimeout) {
+        clearTimeout(state.spinnerTimeout)
       }
     }
 
@@ -216,34 +227,57 @@
   })
 
   function restartAnalysis() {
-    // Terminate existing workers and clear spinner timeouts
-    for (const state of workerStates.values()) {
-      if (state.worker) {
-        state.worker.terminate()
-      }
-      if (state.spinnerTimeout) {
-        clearTimeout(state.spinnerTimeout)
+    // Drop workers and state for transforms that are no longer compatible
+    // (e.g. the step's display type changed)
+    const compatibleIds = new Set(compatibleTransforms.map(({ id }) => id))
+    for (const [id, state] of workerStates) {
+      if (!compatibleIds.has(id)) {
+        if (state.spinnerTimeout) {
+          clearTimeout(state.spinnerTimeout)
+        }
+        terminateWorker(id)
+        workerStates.delete(id)
       }
     }
+    workerStates = new Map(workerStates)
 
-    // Clear state
-    workerStates.clear()
-    workerStates = new Map()
-
-    // Start analysis for each compatible transform
+    // Start analysis for each compatible transform, reusing idle workers
     for (const { id } of compatibleTransforms) {
       startWorker(id)
+    }
+  }
+
+  function terminateWorker(transformId: string) {
+    const worker = workers.get(transformId)
+    if (worker) {
+      worker.terminate()
+      workers.delete(transformId)
     }
   }
 
   function startWorker(transformId: string) {
     const requestId = ++requestCounter
 
+    const prevState = workerStates.get(transformId)
+    if (prevState?.spinnerTimeout) {
+      clearTimeout(prevState.spinnerTimeout)
+    }
+
+    // If a previous request is still in flight, don't queue behind it — a slow
+    // run on a huge input would delay this one. Replace the busy worker instead.
+    if (prevState && (prevState.state === "pending" || prevState.state === "running")) {
+      terminateWorker(transformId)
+    }
+
     try {
-      // Create worker
-      const worker = new Worker(new URL("./transform.worker.js", import.meta.url), {
-        type: "module",
-      })
+      // Reuse this transform's persistent worker, or spawn it
+      let worker = workers.get(transformId)
+      if (!worker) {
+        worker = new Worker(new URL("./transform.worker.js", import.meta.url), {
+          type: "module",
+        })
+        workers.set(transformId, worker)
+      }
 
       // Set up delayed spinner display
       const spinnerTimeout = setTimeout(() => {
@@ -264,7 +298,6 @@
       // Initialize state
       workerStates.set(transformId, {
         state: "pending",
-        worker,
         result: null,
         message: "Starting analysis...",
         requestId,
@@ -347,9 +380,6 @@
             })
             workerStates = new Map(workerStates)
 
-            // Terminate worker
-            worker.terminate()
-
             // If this transform is currently selected, update the inverse function
             // but don't propagate (onupdate) as that would clear subsequent steps
             // The transform is already applied, we just need to update the inverse.
@@ -382,7 +412,6 @@
               showSpinner: false,
             })
             workerStates = new Map(workerStates)
-            worker.terminate()
           }
         } else if (status === "error") {
           // Clear spinner timeout on error
@@ -403,9 +432,6 @@
             showSpinner: false,
           })
           workerStates = new Map(workerStates)
-
-          // Terminate worker
-          worker.terminate()
         }
       }
 
@@ -432,7 +458,8 @@
           })
           workerStates = new Map(workerStates)
         }
-        worker.terminate()
+        // An uncaught worker error leaves it in an unknown state — replace it
+        terminateWorker(transformId)
       }
 
       // Send message to worker
@@ -446,7 +473,6 @@
       console.error(`[Step] Failed to create worker for ${transformId}:`, error)
       workerStates.set(transformId, {
         state: "error",
-        worker: null,
         result: {
           score: 0,
           from_name: allTransforms[transformId]?.name || transformId,
@@ -466,10 +492,8 @@
     const state = workerStates.get(transformId)
     if (!state) return
 
-    // Terminate worker
-    if (state.worker) {
-      state.worker.terminate()
-    }
+    // Terminate the busy worker; retry will spawn a fresh one
+    terminateWorker(transformId)
 
     // Clear spinner timeout
     if (state.spinnerTimeout) {
@@ -487,7 +511,6 @@
         message: `Analysis canceled. Last status: ${state.message || "pending"}`,
       },
       message: `Canceled: ${state.message || "pending"}`,
-      worker: null,
       spinnerTimeout: null,
       showSpinner: false,
     })
@@ -512,16 +535,7 @@
   }
 
   function reapplyTransform(transformId: string) {
-    // Re-run the worker with the new options
-    // First, clear the current worker state to force a re-run
-    const currentState = workerStates.get(transformId)
-    if (currentState?.worker) {
-      currentState.worker.terminate()
-    }
-    workerStates.delete(transformId)
-    workerStates = new Map(workerStates)
-
-    // Restart the worker with new options
+    // Re-run the analysis with new options; startWorker replaces any in-flight run
     startWorker(transformId)
   }
 
