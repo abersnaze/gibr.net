@@ -117,15 +117,41 @@ analyze: (data: string) => {
 - Inverse functions receive the **output** content and should return the **input** content
 - Not all transforms need inverses, but without them, backward propagation stops at that step
 
+## Testing (required for all transform changes)
+
+Run `npm test` (or `npx vitest` for watch mode). The conformance suite at
+`transforms/__tests__/conformance.test.ts` automatically checks **every**
+registered transform:
+
+- **Coverage**: every transform id must have a fixture entry, and every fixture
+  must match a registered transform. Adding a transform without fixtures fails
+  the suite with the missing id.
+- **Robustness**: `analyze()` must never throw, for any input type. Wrap risky
+  work in try/catch and return `{ score: 0, message }`.
+- **Fixture cases**: each fixture's `valid` cases assert the expected content,
+  display type, minimum score, and that `inverse(content, options)` reproduces
+  the input (or its documented normalization via `roundTrip`). `invalid` cases
+  assert failure with a message.
+
+To add fixtures: create `transforms/__tests__/fixtures/<name>.ts` exporting
+`Record<transformId, TransformFixture>` (see `fixtures/types.ts` for the case
+shape), then import and merge it into the `fixtures` object in
+`conformance.test.ts`. Never weaken or delete existing fixture cases to make a
+change pass — a failing round-trip means the transform or its inverse is wrong.
+
 ## Adding New Transforms
 
 To add a new transform:
 
 1. Create a new file in `transforms/` (e.g., `myTransform.ts`)
 2. Export a Record<string, Transform> with your transform(s)
-3. Import and add to the transforms object in `transforms/index.ts`
+3. Import and add to the transforms object in `transforms/index.ts` **and** in
+   `transform.worker.js` (the worker keeps its own import list to avoid pulling
+   Svelte components into workers)
 4. Provide both encode and decode variants if applicable
 5. Implement inverse functions for bi-directional editing support
+6. Add fixture cases in `transforms/__tests__/fixtures/` (see Testing above) —
+   the conformance suite fails until you do
 
 Example:
 
