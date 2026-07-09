@@ -5,3 +5,4 @@
 # Sentry Config File
 .env.sentry-build-plugin
 .vitest-results.json
+.svelte-kit
