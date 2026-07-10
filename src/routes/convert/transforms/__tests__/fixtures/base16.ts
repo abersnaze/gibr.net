@@ -21,9 +21,15 @@ const fixtures: Record<string, TransformFixture> = {
         expected: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
         roundTrip: "deadbeef",
       },
+      {
+        name: "empty string decodes to empty bytes",
+        input: "",
+        expected: new Uint8Array(0),
+      },
     ],
     invalid: [
-      { name: "empty string", input: "" },
+      { name: "non-hex characters score zero", input: "hello world" },
+      { name: "odd number of digits", input: "abc" },
       { name: "wrong type", input: new Uint8Array([1]) },
     ],
   },

@@ -1,7 +1,17 @@
 import { type Content, type Transform } from "../model"
 
 function fromHexString(hexString: string): Uint8Array {
-  return new Uint8Array(hexString.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)))
+  if (!/^[0-9a-fA-F]*$/.test(hexString)) {
+    throw new Error("Invalid hex: contains non-hexadecimal characters")
+  }
+  if (hexString.length % 2 !== 0) {
+    throw new Error("Invalid hex: odd number of digits")
+  }
+  const bytes = new Uint8Array(hexString.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hexString.slice(i * 2, i * 2 + 2), 16)
+  }
+  return bytes
 }
 
 function toHexString(bytes: Uint8Array): string {

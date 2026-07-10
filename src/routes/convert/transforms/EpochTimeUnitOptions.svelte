@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte"
 
-  export let value: string = "ms" // Just the unit, not "unit:timezone"
+  export let value: string = "auto" // Just the unit, not "unit:timezone"
 
   const dispatch = createEventDispatcher()
 
@@ -15,6 +15,7 @@
 <div class="epoch-options">
   <label for="time-unit-select">Time Unit:</label>
   <select id="time-unit-select" bind:value on:change={handleChange}>
+    <option value="auto">Auto-detect</option>
     <option value="ms">Milliseconds</option>
     <option value="sec">Seconds</option>
     <option value="ns">Nanoseconds</option>

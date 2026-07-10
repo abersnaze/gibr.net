@@ -356,7 +356,12 @@ function reconstructVersion7(components: UUIDComponents, timestampUnit: string =
   if (timestampUnit === "sec") {
     timestamp = timestampValue * 1000
   } else if (timestampUnit === "ns") {
-    timestamp = Math.floor(timestampValue / 1000000)
+    // ns values exceed Number.MAX_SAFE_INTEGER — use BigInt when possible
+    try {
+      timestamp = Number(BigInt(components.timestamp_ms) / BigInt(1000000))
+    } catch {
+      timestamp = Math.floor(timestampValue / 1000000)
+    }
   } else {
     // milliseconds (default)
     timestamp = timestampValue

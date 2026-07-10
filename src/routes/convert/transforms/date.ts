@@ -1,5 +1,34 @@
 import { type Transform, type Content } from "../model"
 
+// Auto-detect epoch unit from magnitude:
+// seconds ~1.7e9 (10 digits), milliseconds ~1.7e12 (13), nanoseconds ~1.7e18 (19)
+function detectUnit(num: number): string {
+  const abs = Math.abs(num)
+  if (abs >= 1e17) {
+    return "ns"
+  } else if (abs >= 1e12) {
+    return "ms"
+  } else {
+    return "sec"
+  }
+}
+
+// Convert an epoch value to milliseconds. Nanosecond epochs exceed
+// Number.MAX_SAFE_INTEGER, so integer strings go through BigInt.
+function epochToMs(raw: string | number, num: number, unit: string): number {
+  if (unit === "sec") {
+    return num * 1000
+  }
+  if (unit === "ns") {
+    if (typeof raw === "string" && /^-?\d+$/.test(raw.trim())) {
+      return Number(BigInt(raw.trim()) / BigInt(1000000))
+    }
+    return num / 1000000
+  }
+  // Milliseconds (default)
+  return num
+}
+
 const transforms: Record<string, Transform> = {
   // Parse epoch time to Date object with configurable unit
   epoch_to_date: {
@@ -7,7 +36,7 @@ const transforms: Record<string, Transform> = {
     prev: "TextDisplay",
     // Options component will be set later to avoid circular dependency issues with workers
     optionsComponent: undefined,
-    defaults: "ms",
+    defaults: "auto",
     analyze: (data: unknown, options?: string) => {
       try {
         const display = "DateDisplay" as const
@@ -27,29 +56,10 @@ const transforms: Record<string, Transform> = {
           return { score: 0, message: "Not a valid number", display }
         }
 
-        // Auto-detect unit based on number magnitude
-        // Current time in seconds: ~1.7e9 (10 digits)
-        // Current time in milliseconds: ~1.7e12 (13 digits)
-        // Current time in nanoseconds: ~1.7e18 (19 digits)
-        let unit = options || "ms"
-        if (num >= 1e17) {
-          unit = "ns"
-        } else if (num >= 1e12) {
-          unit = "ms"
-        } else {
-          unit = "sec"
-        }
+        // An explicit unit from the options wins; otherwise detect by magnitude
+        const unit = options && options !== "auto" ? options : detectUnit(num)
 
-        // Convert to milliseconds based on detected unit
-        let ms: number
-        if (unit === "sec") {
-          ms = num * 1000
-        } else if (unit === "ns") {
-          ms = num / 1000000
-        } else {
-          // Milliseconds (default)
-          ms = num
-        }
+        const ms = epochToMs(data, num, unit)
 
         // Check if result is a valid JavaScript Date (must be within ±8.64e15 ms from epoch)
         if (ms < -8.64e15 || ms > 8.64e15) {
@@ -61,7 +71,7 @@ const transforms: Record<string, Transform> = {
           return { score: 0, message: "Invalid date", display }
         }
 
-        return { score: 1.5, content: date, options: unit }
+        return { score: 1.5, content: date }
       } catch (error: unknown) {
         return {
           score: 0,
@@ -70,9 +80,9 @@ const transforms: Record<string, Transform> = {
         }
       }
     },
-    // Date -> epoch string in the unit given by options
-    invert: (output: Content, _originalInput: Content, options?: string) => {
-      const unit = options || "ms"
+    // Date -> epoch string in the unit given by options; on "auto", detect
+    // the unit from the original epoch value's magnitude
+    invert: (output: Content, originalInput: Content, options?: string) => {
       const epochMs = output instanceof Date ? output.getTime() : new Date(String(output)).getTime()
 
       // If the date is invalid, return empty string to avoid NaN propagation
@@ -80,10 +90,16 @@ const transforms: Record<string, Transform> = {
         return ""
       }
 
+      let unit = options
+      if (!unit || unit === "auto") {
+        const num = typeof originalInput === "number" ? originalInput : Number(originalInput)
+        unit = isNaN(num) ? "ms" : detectUnit(num)
+      }
+
       if (unit === "sec") {
         return Math.floor(epochMs / 1000).toString()
       } else if (unit === "ns") {
-        return (epochMs * 1000000).toString()
+        return (BigInt(epochMs) * BigInt(1000000)).toString()
       } else {
         return epochMs.toString()
       }
@@ -217,7 +233,8 @@ const transforms: Record<string, Transform> = {
           return { score: 0, message: "Invalid date" }
         }
 
-        const content = (date.getTime() * 1000000).toString()
+        // getTime() * 1e6 exceeds Number.MAX_SAFE_INTEGER — use BigInt
+        const content = (BigInt(date.getTime()) * BigInt(1000000)).toString()
         return { score: 2.0, content }
       } catch (error: unknown) {
         return {
@@ -227,14 +244,15 @@ const transforms: Record<string, Transform> = {
         }
       }
     },
-    // epoch nanoseconds -> Date
+    // epoch nanoseconds -> Date (BigInt: ns values exceed MAX_SAFE_INTEGER)
     invert: (output: Content) => {
-      const ns = parseInt(String(output), 10)
-      if (isNaN(ns)) {
+      let ns: bigint
+      try {
+        ns = BigInt(String(output).trim())
+      } catch {
         return ""
       }
-      const ms = ns / 1000000
-      const date = new Date(ms)
+      const date = new Date(Number(ns / BigInt(1000000)))
       if (isNaN(date.getTime())) {
         return ""
       }

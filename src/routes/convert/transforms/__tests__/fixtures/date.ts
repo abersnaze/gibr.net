@@ -27,6 +27,24 @@ const fixtures: Record<string, TransformFixture> = {
         options: "ns",
         expected: date,
       },
+      {
+        name: "auto-detects seconds by magnitude",
+        input: "1700000000",
+        expected: date,
+      },
+      {
+        name: "explicit unit overrides auto-detection",
+        input: "1700000000",
+        options: "ms",
+        expected: new Date(1700000000),
+      },
+      {
+        name: "ns precision beyond MAX_SAFE_INTEGER (sub-ms truncates)",
+        input: "1700000000000000001",
+        options: "ns",
+        expected: date,
+        roundTrip: "1700000000000000000",
+      },
     ],
     invalid: [
       { name: "not a number", input: "abc" },
@@ -83,6 +101,12 @@ const fixtures: Record<string, TransformFixture> = {
         expected: "1700000000000000000",
         expectedDisplay: "TextDisplay",
         roundTrip: date,
+      },
+      {
+        name: "ns beyond MAX_SAFE_INTEGER stays exact",
+        input: new Date(1234567890123),
+        expected: "1234567890123000000",
+        roundTrip: new Date(1234567890123),
       },
     ],
     invalid: [{ name: "invalid date", input: new Date(NaN) }],
