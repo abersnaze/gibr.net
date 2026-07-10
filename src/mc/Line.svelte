@@ -1,5 +1,6 @@
 <script>
   import Logo from "../home/Logo.svelte"
+  import HelpButton from "../home/HelpButton.svelte"
   import IsometricDiagram from "./IsometricDiagram.svelte"
   import { onMount } from "svelte"
 
@@ -322,6 +323,27 @@
 </script>
 
 <main>
+  <HelpButton label="Minecraft Line Generator help">
+    <h2>Minecraft Line Generator</h2>
+    <p>
+      Plan the shortest voxel-by-voxel path between two points and get step-by-step build
+      instructions.
+    </p>
+    <ul>
+      <li>Enter your current X/Y/Z coordinates under "Where are you?"</li>
+      <li>Enter the target coordinates under "Where do you want to go?"</li>
+      <li>
+        The diagram shows the path as stacked blocks; the instructions table lists each move,
+        grouped and repeated patterns collapsed into a single row
+      </li>
+      <li>
+        Use the arrow buttons to step through the path — the diagram highlights the current step
+      </li>
+      <li>
+        Your coordinates are saved to the URL and your browser so you can share or return to them
+      </li>
+    </ul>
+  </HelpButton>
   <h1><Logo /> Minecraft Line Generator</h1>
   <section>
     <h2>Where are you?</h2>

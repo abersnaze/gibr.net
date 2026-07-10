@@ -1,5 +1,6 @@
 <script lang="ts">
   import Logo from "../../home/Logo.svelte"
+  import HelpButton from "../../home/HelpButton.svelte"
   import Step from "./Step.svelte"
   import type { DisplayName, Step as StepType } from "./model"
   import { applyStepUpdate } from "./pipeline"
@@ -45,6 +46,27 @@
 </script>
 
 <main>
+  <HelpButton label="Convert Things help">
+    <h2>Convert Things</h2>
+    <p>Chain data transformations together and edit the data at any step along the way.</p>
+    <ul>
+      <li>Type or paste content into the first box</li>
+      <li>
+        The tool detects possible transforms (Base64, JSON, UTF-8, dates, and more) and shows them
+        as chips below, ranked by confidence
+      </li>
+      <li>Click a chip to apply that transform — it adds a new step showing the result</li>
+      <li>Click a different chip on any step to swap the transform used there</li>
+      <li>
+        Edit the content at any step and changes propagate backward to earlier steps and forward
+        through the rest of the chain
+      </li>
+      <li>
+        In a tree view, click a key or value to extract it into a new step; in a text view, select
+        text to extract that substring
+      </li>
+    </ul>
+  </HelpButton>
   <h1><Logo /> Convert Things</h1>
   {#each steps as step, index (index)}
     <section aria-label="Transformation step {index + 1}">

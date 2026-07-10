@@ -1,5 +1,6 @@
 <script lang="ts">
   import Logo from "../home/Logo.svelte"
+  import HelpButton from "../home/HelpButton.svelte"
   import TapeMeasure from "./TapeMeasure.svelte"
   import { toFraction, type FractionEntry } from "./model"
   import { onMount } from "svelte"
@@ -107,6 +108,21 @@
 </script>
 
 <main>
+  <HelpButton label="Decimal to Fraction help">
+    <h2>Decimal to Fraction</h2>
+    <p>Convert a decimal number to the nearest fraction at a chosen precision.</p>
+    <ul>
+      <li>Type a decimal (e.g. <code>3.625</code>) into the Decimal field</li>
+      <li>
+        Pick the "Nearest" denominator — this is the smallest fraction increment allowed (e.g.
+        1/16th)
+      </li>
+      <li>Press Add or hit Enter to convert it and add it to the list below</li>
+      <li>Each entry shows a tape-measure diagram marking where the value falls</li>
+      <li>Remove an entry with the &times; button, or clear everything with "Clear All"</li>
+      <li>Entries are saved to the URL and your browser so you can share or return to them</li>
+    </ul>
+  </HelpButton>
   <h1><Logo /> Decimal to Fraction</h1>
 
   <section class="input-section">
