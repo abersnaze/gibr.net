@@ -4,7 +4,7 @@ This directory contains a composable, bi-directional data transformation tool th
 
 ## Overview
 
-The Convert tool enables users to chain multiple data transformations together (e.g., base64 decode → JSON parse → jq filter) and edit the data at any step, with changes automatically propagating both forward and backward through the transformation chain.
+The Convert tool enables users to chain multiple data transformations together (e.g., base64 decode → UTF-8 decode → JSON parse) and edit the data at any step, with changes automatically propagating both forward and backward through the transformation chain.
 
 ## Architecture
 
@@ -30,7 +30,7 @@ The Convert tool enables users to chain multiple data transformations together (
 
 - **transforms/**: Transform implementations
   - Each transform exports a Record<string, Transform> with encode/decode variants
-  - Transforms include: base64, base58, base16, utf8, JSON, YAML, jq, jsonpath, URI encoding
+  - Transforms include: base64, base58, base16, utf8, JSON, YAML, jsonpath, substring, URI, UUID, dates
   - **index.ts**: Aggregates all transforms and provides the `analyze()` function
 
 - **display/**: Content display components
@@ -282,7 +282,7 @@ The path selection creates an implicit `jsonpath_select` transform with path `.p
 3. **Use appropriate content types**: Choose the right display type for your transform's output
 4. **Provide meaningful scores**: Help users select the right transform
 5. **Handle edge cases**: Empty content, invalid input, type mismatches
-6. **Add options when needed**: Use `optionsComponent` for configurable transforms (see jq.ts)
+6. **Add options when needed**: Use `optionsComponent` for configurable transforms (see epoch_to_date in date.ts)
 7. **Follow naming conventions**: Use descriptive transform IDs like `json_parse` and `json_stringify`
 8. **Store transform options**: Use `step.options` to persist transform-specific options for propagation
 9. **Interactive displays**: Display components can emit custom events (like `path-select`) for implicit transforms
