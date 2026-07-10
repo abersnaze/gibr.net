@@ -157,9 +157,9 @@ To add a new transform:
 
 1. Create a new file in `transforms/` (e.g., `myTransform.ts`)
 2. Export a Record<string, Transform> with your transform(s)
-3. Import and add to the transforms object in `transforms/index.ts` **and** in
-   `transform.worker.js` (the worker keeps its own import list to avoid pulling
-   Svelte components into workers)
+3. Import and add to the transforms object in `transforms/registry.ts` (the
+   single registry shared by the UI, the worker, and the tests; it must stay
+   free of Svelte imports — UI attachment happens in `transforms/index.ts`)
 4. Provide both encode and decode variants if applicable
 5. Implement `invert` for bi-directional editing support
 6. Add fixture cases in `transforms/__tests__/fixtures/` (see Testing above) —

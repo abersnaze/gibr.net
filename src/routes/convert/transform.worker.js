@@ -1,32 +1,7 @@
-// Web worker for running transform analysis in parallel
-// NOTE: We manually import transforms here instead of using index.ts to avoid
-// importing Svelte UI components (like DateTimezoneOptions) which can't run in workers
-import base16 from "./transforms/base16.js"
-import base58 from "./transforms/base58.js"
-import base64 from "./transforms/base64.js"
-import json from "./transforms/json.js"
-import jsonpath from "./transforms/jsonpath.js"
-import substring from "./transforms/substring.js"
-import uri from "./transforms/uri.js"
-import utf8 from "./transforms/utf8.js"
-import uuid from "./transforms/uuid.js"
-import yaml from "./transforms/yaml.js"
-import date from "./transforms/date.js"
-
-// Combine all transforms
-const allTransforms = {
-  ...base16,
-  ...base58,
-  ...base64,
-  ...json,
-  ...jsonpath,
-  ...substring,
-  ...uri,
-  ...utf8,
-  ...uuid,
-  ...yaml,
-  ...date,
-}
+// Web worker for running transform analysis off the main thread.
+// Imports the pure registry — never ./transforms/index.js, which attaches
+// Svelte options components that can't load in a worker.
+import { allTransforms } from "./transforms/registry.js"
 
 // Listen for messages from main thread
 self.addEventListener("message", (event) => {
