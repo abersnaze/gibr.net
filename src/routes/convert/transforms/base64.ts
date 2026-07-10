@@ -1,4 +1,5 @@
 import { type Transform, type Content } from "../model.js"
+import { alphabetConfidence } from "./scoring"
 
 /*
 https://gist.github.com/enepomnyaschih/72c423f727d395eeaa09697058238727
@@ -171,8 +172,9 @@ const transforms: Record<string, Transform> = {
           return { score: 0.0, message: `Expected string, got ${typeof data}` }
         }
 
-        const content = base64ToBytes(data.replace(/[\s]*/g, ""))
-        return { score: 1.0, content }
+        const stripped = data.replace(/[\s]*/g, "")
+        const content = base64ToBytes(stripped)
+        return { score: alphabetConfidence(stripped.length, base64abc.length), content }
       } catch (error) {
         return { score: 0.0, message: error instanceof Error ? error.message : String(error) }
       }

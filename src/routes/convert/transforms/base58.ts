@@ -1,4 +1,5 @@
 import { type Transform, type Content } from "../model"
+import { alphabetConfidence } from "./scoring"
 
 // Base58 implementation
 const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
@@ -120,7 +121,7 @@ const transforms: Record<string, Transform> = {
 
       try {
         const content = base58.decode(data)
-        return { score: 1.0, content }
+        return { score: alphabetConfidence(data.length, ALPHABET.length), content }
       } catch (error) {
         return { score: 0.0, message: error }
       }

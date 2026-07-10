@@ -1,4 +1,5 @@
 import { type Content, type Transform } from "../model"
+import { alphabetConfidence } from "./scoring"
 
 function fromHexString(hexString: string): Uint8Array {
   if (!/^[0-9a-fA-F]*$/.test(hexString)) {
@@ -27,8 +28,9 @@ const transforms: Record<string, Transform> = {
         if (typeof data !== "string") {
           return { score: 0.0, message: `Expected string, got ${typeof data}` }
         }
-        const content = fromHexString(data.replace(/[\s]*/g, ""))
-        return { score: 1.0, content }
+        const stripped = data.replace(/[\s]*/g, "")
+        const content = fromHexString(stripped)
+        return { score: alphabetConfidence(stripped.length, 16), content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
