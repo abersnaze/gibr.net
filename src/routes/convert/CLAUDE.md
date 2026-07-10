@@ -46,7 +46,7 @@ The Convert tool enables users to chain multiple data transformations together (
 
 - **transforms/**: Transform implementations
   - Each transform file exports a Record<string, Transform> with encode/decode variants
-  - Transforms include: base64, base58, base16, utf8, JSON, YAML, jsonpath, substring, URI, UUID, dates
+  - Transforms include: base64, base58, base16, utf8, JSON, YAML, jsonpath, substring, URI, UUID, dates, schemaless protobuf
   - **registry.ts**: The single registry — imports every transform file and
     exports `allTransforms`, `defaultOpts`, and `analyze()`. Pure (no Svelte);
     imported by the worker, the pipeline, and the tests

@@ -12,6 +12,7 @@ import { default as substring_transforms } from "./substring.js"
 import { default as uri_transforms } from "./uri.js"
 import { default as uuid_transforms } from "./uuid.js"
 import { default as date_transforms } from "./date.js"
+import { default as protobuf_transforms } from "./protobuf.js"
 import { getDisplayName, type Transform, type AnalyzeResult, type Step } from "../model.js"
 
 export const allTransforms: Record<string, Transform> = Object.assign(
@@ -25,7 +26,8 @@ export const allTransforms: Record<string, Transform> = Object.assign(
   substring_transforms,
   uri_transforms,
   uuid_transforms,
-  date_transforms
+  date_transforms,
+  protobuf_transforms
 )
 
 export const defaultOpts = Object.fromEntries(

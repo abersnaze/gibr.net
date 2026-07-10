@@ -9,6 +9,7 @@ import base64 from "./fixtures/base64.js"
 import date from "./fixtures/date.js"
 import json from "./fixtures/json.js"
 import jsonpath from "./fixtures/jsonpath.js"
+import protobuf from "./fixtures/protobuf.js"
 import substring from "./fixtures/substring.js"
 import uri from "./fixtures/uri.js"
 import utf8 from "./fixtures/utf8.js"
@@ -25,6 +26,7 @@ const fixtures: Record<string, TransformFixture> = {
   ...date,
   ...json,
   ...jsonpath,
+  ...protobuf,
   ...substring,
   ...uri,
   ...utf8,
