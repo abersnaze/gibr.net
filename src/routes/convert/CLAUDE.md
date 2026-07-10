@@ -11,32 +11,53 @@ The Convert tool enables users to chain multiple data transformations together (
 ### Core Components
 
 - **model.ts**: Type definitions for the transform system
-  - `Content` types: TextContent (string/number/boolean), BinaryContent (Uint8Array), TreeContent (object)
-  - `Transform` interface: Defines how transforms analyze and convert data
-  - `Step` interface: Represents a single transformation step in the chain
-  - `Display` types: Three display modes for different content types
+  - `Content` types: TextContent (string/number/boolean), BinaryContent (Uint8Array), TreeContent (object), DateContent (Date)
+  - `Transform` interface: `analyze()` plus optional static `invert()`
+  - `Step` interface: One step in the chain — plain serializable data (content, display name, selected transform id, options)
+  - `DisplayName`: string names of the four display modes
 
-- **Convert.svelte**: Main orchestrator component (src/convert/Convert.svelte)
-  - Manages the array of transformation steps
-  - Handles forward propagation when transforms are applied
-  - Handles backward propagation using inverse transforms when content is edited
-  - Implements `handleUpdate()`, `applyInverseTransforms()`, and `propagateForward()` logic
+- **pipeline.ts**: All chain propagation logic, as pure functions over `Step[]`
+  (no Svelte, DOM, or worker dependencies — fully unit-testable)
+  - `applyStepUpdate(steps, update)`: reducer for every event a step can emit
+    (transform selected/changed/unselected, content edited)
+  - `propagateForward(steps, startIndex)`: re-applies each step's transform
+    downstream; clears steps after blank/failed input, truncates at the first
+    step without a transform
+  - `applyInverse(steps, editedIndex)`: walks transform `invert()`s backward to
+    step 0, then re-propagates forward
+  - Every function returns a new array; inputs are never mutated
 
-- **Step.svelte**: Individual transformation step component (src/convert/Step.svelte)
-  - Displays current step content (editable via display component)
-  - Shows available transforms with confidence scores
-  - Handles transform selection and content changes
-  - Dispatches updates to parent Convert component
+- **+page.svelte**: Thin orchestrator — owns the `steps` array, applies
+  `applyStepUpdate` on child events, and pauses per-step analysis
+  (`pauseAnalysis` context store) while the chain recomputes
+
+- **Step.svelte**: Individual transformation step component
+  - Renders the step's content via the matching display component
+  - Runs `analyze()` for every compatible transform in **persistent web
+    workers, one per transform** (reused across runs; a busy worker is
+    replaced, not queued behind, so huge inputs never delay new content)
+  - Shows results as selectable chips with normalized confidence scores,
+    spinner/cancel/retry states per transform
+  - Dispatches update events to the parent page
+
+- **transform.worker.js**: Thin worker shim — receives
+  `{transformId, input, options, requestId}`, runs the transform's `analyze()`
+  from the registry, posts the plain-data result back
 
 - **transforms/**: Transform implementations
-  - Each transform exports a Record<string, Transform> with encode/decode variants
+  - Each transform file exports a Record<string, Transform> with encode/decode variants
   - Transforms include: base64, base58, base16, utf8, JSON, YAML, jsonpath, substring, URI, UUID, dates
-  - **index.ts**: Aggregates all transforms and provides the `analyze()` function
+  - **registry.ts**: The single registry — imports every transform file and
+    exports `allTransforms`, `defaultOpts`, and `analyze()`. Pure (no Svelte);
+    imported by the worker, the pipeline, and the tests
+  - **index.ts**: Main-thread entry — re-exports the registry and attaches
+    Svelte options components (never imported by workers)
 
 - **display/**: Content display components
-  - **TextDisplay.svelte**: For string/number/boolean content (editable textarea)
-  - **BinaryDisplay.svelte**: For Uint8Array binary data
-  - **TreeDisplay.svelte**: For object/JSON tree structures
+  - **TextDisplay.svelte**: For string/number/boolean content (editable textarea, text selection → substring extraction)
+  - **BinaryDisplay.svelte**: For Uint8Array binary data (hex dump)
+  - **TreeDisplay.svelte**: For object/array trees (clickable keys/values → jsonpath selection)
+  - **DateDisplay.svelte**: For Date content (editable with timezone and relative-date helpers)
 
 ### Key Data Flow
 
@@ -60,13 +81,15 @@ The Convert tool enables users to chain multiple data transformations together (
    - Only transforms matching the current step's display type are shown
    - Scores are normalized and displayed as percentages to guide user selection
 
-4. **Interactive Path Selection (JSONPath)**:
+4. **Interactive Selection (JSONPath / Substring)**:
    - When viewing JSON/object data in TreeDisplay, keys and values are clickable
    - Clicking a **key** extracts the value at that key (creates new step)
    - Clicking a **value** extracts that specific value (creates new step)
    - This implicitly applies the `jsonpath_select` transform with the computed path
-   - The selected path is stored in `step.options` for forward/backward propagation
-   - JSONPath transform is hidden from the explicit transform menu
+   - Similarly, selecting text in TextDisplay offers a "Selection" chip that
+     applies `substring_select` with the selection range as options
+   - The selected path/range is stored in `step.options` for forward/backward propagation
+   - Both implicit transforms are hidden from the explicit transform menu
 
 ## Transform Interface
 
@@ -195,10 +218,13 @@ export default transforms
 
 Display components must:
 
-- Accept a `content` prop (bindable)
+- Accept a `content` prop (bindable); `content` is the single owner of the
+  value — derive any display-only state from it, never assign both
 - Dispatch `content-change` events when edited
-- Handle their specific content type (string, Uint8Array, or object)
-- See TextDisplay.svelte:22-47 for the content change handling pattern
+- Handle their specific content type (string/number/boolean, Uint8Array,
+  object, or Date)
+- See TextDisplay.svelte's `handleInput` for the debounced content change
+  handling pattern
 
 ## Transform Scoring
 
@@ -219,21 +245,30 @@ Transforms return a score (0.0 = failure, > 0.0 = success):
 
 ### Reactivity
 
-- Svelte's reactivity tracks the `steps` array
-- Always reassign `steps = [...steps]` after mutations for reactivity
-- The `analyze()` function is reactive: `$: results = analyze(step, options)`
+- The pipeline functions are pure: they return a **new** `steps` array and
+  never mutate their input, so `+page.svelte` just assigns
+  `steps = applyStepUpdate(steps, ...)` — no manual `steps = [...steps]` pokes
+- Unchanged steps keep their content references across updates, so Step
+  components only restart analysis when their content actually changed
+- `pauseAnalysis` (context store) suppresses per-step analysis restarts during
+  chain recomputation; deferred restarts run once it resumes
 
 ### Options
 
 - Transforms can provide an `optionsComponent` for custom configuration UI
-- Default options are stored in `defaultOpts` object in transforms/index.ts
-- Options are passed to the `analyze()` function
+  (attached in transforms/index.ts, main thread only)
+- Default options come from each transform's `defaults` and are aggregated in
+  `defaultOpts` in transforms/registry.ts
+- Options are passed to both `analyze()` and `invert()`; selecting a transform
+  persists the effective options onto `step.options` so backward propagation
+  and re-application use the same ones the analysis ran with
 
 ### Content Types
 
 - **Text**: String, number, or boolean values (displayed in textarea)
 - **Binary**: Uint8Array (displayed as hex/binary)
 - **Tree**: Objects and arrays (displayed as expandable JSON tree)
+- **Date**: Date objects (displayed as editable timestamp with timezone toggle)
 
 ## Common Patterns
 
@@ -268,12 +303,18 @@ The path selection creates an implicit `jsonpath_select` transform with path `.p
 ## Files Reference
 
 - **model.ts**: Core type system
-- **Convert.svelte**: Main pipeline orchestrator with bi-directional logic
-- **Step.svelte**: Individual step UI and transform selection
-- **transforms/index.ts**: Transform registry and analyze function
-- **transforms/base64.ts**: Example of binary↔text transforms with inverses
-- **transforms/json.ts**: Example of tree↔text transforms with inverses
+- **pipeline.ts**: Pure bi-directional propagation logic (the place to change chain behavior)
+- **+page.svelte**: Page orchestrator (steps array, pause/resume around updates)
+- **Step.svelte**: Individual step UI, worker lifecycle, transform selection
+- **transform.worker.js**: Worker shim over the registry
+- **transforms/registry.ts**: Single transform registry, `defaultOpts`, `analyze()`
+- **transforms/index.ts**: Main-thread re-export + options component attachment
+- **transforms/base64.ts**: Example of binary↔text transforms with invert
+- **transforms/json.ts**: Example of tree↔text transforms with invert
+- **transforms/substring.ts / jsonpath.ts**: Examples of invert using `originalInput` and `options`
 - **display/TextDisplay.svelte**: Editable text display with debounced change events
+- **\_\_tests\_\_/pipeline.test.ts**: Propagation scenario tests
+- **transforms/\_\_tests\_\_/conformance.test.ts**: Per-transform conformance suite + fixtures
 
 ## Development Guidelines
 
