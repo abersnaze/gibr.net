@@ -6,3 +6,6 @@
 .env.sentry-build-plugin
 .vitest-results.json
 .svelte-kit
+
+# Claude Code per-machine settings
+.claude/settings.local.json
