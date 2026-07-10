@@ -93,8 +93,9 @@
                         handleSelect(path + "." + item.key, item.value)}
                       title="Select index {item.key}">{item.key}</button
                     >
+                    <!-- bind into the real content, not the derived batch copy -->
                     <svelte:self
-                      bind:content={item.value}
+                      bind:content={content[item.key]}
                       bind:root
                       path={path + "." + item.key}
                       depth={depth + 1}
@@ -144,8 +145,9 @@
                     <div class="key-value-row" class:complex={isComplex(item.value)}>
                       <dt>{item.key}</dt>
                       <dd>
+                        <!-- bind into the real content, not the derived batch copy -->
                         <svelte:self
-                          bind:content={item.value}
+                          bind:content={content[item.key]}
                           bind:root
                           path={path + "." + item.key}
                           depth={depth + 1}

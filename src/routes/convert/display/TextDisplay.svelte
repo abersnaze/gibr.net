@@ -29,36 +29,24 @@
     }
   })
 
-  // Handle manual content changes with debouncing
+  // Handle manual content changes with debouncing. `content` is the single
+  // owner of the value; `displayContent` is always derived from it.
   let debounceTimer
   function handleInput(event) {
     const newContent = event.target.value
     content = newContent // Update binding immediately for UI responsiveness
-    displayContent = newContent // Also update display content
 
     // Clear selection when user starts typing
     currentSelection = null
-
-    console.log("[TextNode] Input detected:", {
-      newContent,
-      previousContent,
-      contentLength: newContent.length,
-    })
 
     // Debounce the propagation event to avoid excessive processing
     clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => {
       if (newContent !== previousContent) {
-        console.log("[TextNode] Dispatching content-change event:", {
-          newContent,
-          previousContent,
-        })
         dispatch("content-change", { content: newContent, previousContent })
         previousContent = newContent
-      } else {
-        console.log("[TextNode] No change detected, not dispatching event")
       }
-    }, 100) // 100ms debounce for faster testing
+    }, 100) // 100ms debounce
   }
 
   // Handle paste events specifically
@@ -82,15 +70,8 @@
 
     // Only track if there's an actual selection (not just cursor position)
     if (start !== end) {
-      const selectedText = textarea.value.substring(start, end)
-      console.log("[TextDisplay] Text selected:", {
-        start,
-        end,
-        selectedText,
-      })
-
       currentSelection = {
-        text: selectedText,
+        text: textarea.value.substring(start, end),
         start,
         end,
       }
@@ -124,7 +105,7 @@
     </div>
   {/if}
   <textarea
-    bind:value={displayContent}
+    value={displayContent}
     on:input={handleInput}
     on:paste={handlePaste}
     on:mouseup={handleSelection}
