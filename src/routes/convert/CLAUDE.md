@@ -50,7 +50,8 @@ The Convert tool enables users to chain multiple data transformations together (
 2. **Backward Propagation (Inverse Transform)**:
    - User edits content at step N (N > 0)
    - System walks backward through steps N-1, N-2, ... 0
-   - For each step, applies the `inverse` function provided by that step's transform
+   - For each step, calls the transform's `invert(output, originalInput, options)`
+     with the step's own content as originalInput
    - Changes propagate to original input (step 0)
    - Then re-applies all transforms forward from step 0
 
@@ -74,8 +75,9 @@ Each transform must implement the `Transform` interface:
 ```typescript
 interface Transform {
   name: string // Display name (e.g., "Base 64", "JSON")
-  prev: Display // Compatible input display type
-  analyze: (input: any, options?: string) => Result
+  prev: DisplayName // Compatible input display type
+  analyze: (input: unknown, options?: string) => Result
+  invert?: (output: Content, originalInput: Content, options?: string) => Content
   optionsComponent?: Component // Optional UI for transform options
   defaults?: string // Default options
 }
@@ -83,8 +85,11 @@ interface Transform {
 
 The `analyze()` function returns:
 
-- **Success**: `{ score: number, content: Content, inverse?: Function }`
+- **Success**: `{ score: number, content: Content, options?: string }`
 - **Failure**: `{ message: any }` (score defaults to 0)
+
+Results are plain data (no functions) so they can cross the web worker
+boundary unchanged.
 
 ### Transform Scoring Guidelines
 
@@ -94,28 +99,35 @@ Scores indicate confidence that the transform is appropriate for the input:
 - **1.0**: It works, but not sure if this is the best interpretation
 - **<1.0**: It works, but there is probably a better option (e.g., 0.75 for YAML on plain text, 0.1 for URI encode when nothing would change)
 
-### Implementing Inverse Transforms
+### Implementing invert
 
-For bi-directional editing to work, transforms should provide an `inverse` function:
+For bi-directional editing to work, transforms should provide a static `invert`
+function alongside `analyze`:
 
 ```typescript
-analyze: (data: string) => {
-  const content = JSON.parse(data)
-
-  // Inverse function to reverse this transform
-  const inverse = (content: Content) => {
-    return JSON.stringify(content, undefined, 2)
+analyze: (data: unknown) => {
+  if (typeof data !== "string") {
+    return { score: 0.0, message: `Expected string, got ${typeof data}` }
   }
-
-  return { score: 2.0, content, inverse }
-}
+  return { score: 2.0, content: JSON.parse(data) }
+},
+// object -> JSON text
+invert: (output: Content) => {
+  return JSON.stringify(output, undefined, 2)
+},
 ```
 
 **Important**:
 
-- The inverse function must be the exact opposite of the forward transform
-- Inverse functions receive the **output** content and should return the **input** content
-- Not all transforms need inverses, but without them, backward propagation stops at that step
+- `invert` receives the (possibly edited) **output** content, the
+  **originalInput** that produced it, and the step's options; it returns the
+  new **input** content
+- It must be **stateless**: derive everything from those three arguments,
+  never from closures — analyze results must stay serializable across the
+  worker boundary (see `substring.ts` and `jsonpath.ts` for transforms that
+  use `originalInput` and `options`)
+- Not all transforms need `invert`, but without it, backward propagation stops
+  at that step
 
 ## Testing (required for all transform changes)
 
@@ -129,9 +141,9 @@ registered transform:
 - **Robustness**: `analyze()` must never throw, for any input type. Wrap risky
   work in try/catch and return `{ score: 0, message }`.
 - **Fixture cases**: each fixture's `valid` cases assert the expected content,
-  display type, minimum score, and that `inverse(content, options)` reproduces
-  the input (or its documented normalization via `roundTrip`). `invalid` cases
-  assert failure with a message.
+  display type, minimum score, and that `invert(content, input, options)`
+  reproduces the input (or its documented normalization via `roundTrip`).
+  `invalid` cases assert failure with a message.
 
 To add fixtures: create `transforms/__tests__/fixtures/<name>.ts` exporting
 `Record<transformId, TransformFixture>` (see `fixtures/types.ts` for the case
@@ -149,7 +161,7 @@ To add a new transform:
    `transform.worker.js` (the worker keeps its own import list to avoid pulling
    Svelte components into workers)
 4. Provide both encode and decode variants if applicable
-5. Implement inverse functions for bi-directional editing support
+5. Implement `invert` for bi-directional editing support
 6. Add fixture cases in `transforms/__tests__/fixtures/` (see Testing above) —
    the conformance suite fails until you do
 
@@ -157,21 +169,22 @@ Example:
 
 ```typescript
 import { type Transform, type Content } from "../model"
-import TextDisplay from "../display/TextDisplay.svelte"
 
 const transforms: Record<string, Transform> = {
   my_transform: {
     name: "My Transform",
-    prev: TextDisplay,
-    analyze: (data: string) => {
+    prev: "TextDisplay",
+    analyze: (data: unknown) => {
       try {
-        const content = transformData(data)
-        const inverse = (content: Content) => reverseTransform(content)
-        return { score: 1.0, content, inverse }
+        if (typeof data !== "string") {
+          return { score: 0.0, message: `Expected string, got ${typeof data}` }
+        }
+        return { score: 1.0, content: transformData(data) }
       } catch (error) {
         return { score: 0.0, message: error.message }
       }
     },
+    invert: (output: Content) => reverseTransform(output),
   },
 }
 
@@ -264,8 +277,8 @@ The path selection creates an implicit `jsonpath_select` transform with path `.p
 
 ## Development Guidelines
 
-1. **Always implement inverse functions** for transforms when possible
-2. **Test both directions**: Ensure forward transform → inverse → forward yields the same result
+1. **Always implement `invert`** for transforms when possible — stateless, no closures
+2. **Test both directions**: Ensure `invert(analyze(x).content, x, options)` yields `x` (the conformance suite enforces this via fixtures)
 3. **Use appropriate content types**: Choose the right display type for your transform's output
 4. **Provide meaningful scores**: Help users select the right transform
 5. **Handle edge cases**: Empty content, invalid input, type mismatches

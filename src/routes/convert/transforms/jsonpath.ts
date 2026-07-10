@@ -80,37 +80,31 @@ const transforms: Record<string, Transform> = {
     analyze: (data: unknown, path: string = ".") => {
       try {
         const content = getValueByPath(data, path)
-
-        // Provide the inverse function: selected value -> original object with updated value
-        const inverse = (content: Content) => {
-          // Get the original value to determine its type
-          const originalValue = getValueByPath(data, path)
-          let parsedValue = content
-
-          // If the new content is a string, try to convert it to match the original type
-          if (typeof content === "string" && typeof originalValue === "number") {
-            // Original was a number, try to parse the string as a number
-            const num = Number(content)
-            if (!isNaN(num)) {
-              parsedValue = num
-            }
-          } else if (typeof content === "string" && typeof originalValue === "boolean") {
-            // Original was a boolean, parse the string as boolean
-            if (content === "true") parsedValue = true
-            else if (content === "false") parsedValue = false
-          }
-
-          return setValueByPath(data, path, parsedValue)
-        }
-
-        return {
-          score: 1.0,
-          content: content as Content,
-          inverse: inverse as (content: Content) => Content,
-        }
+        return { score: 1.0, content: content as Content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // selected value -> original object with the value at the path updated
+    invert: (output: Content, originalInput: Content, path: string = ".") => {
+      // Get the original value to determine its type
+      const originalValue = getValueByPath(originalInput, path)
+      let parsedValue: unknown = output
+
+      // If the new content is a string, try to convert it to match the original type
+      if (typeof output === "string" && typeof originalValue === "number") {
+        // Original was a number, try to parse the string as a number
+        const num = Number(output)
+        if (!isNaN(num)) {
+          parsedValue = num
+        }
+      } else if (typeof output === "string" && typeof originalValue === "boolean") {
+        // Original was a boolean, parse the string as boolean
+        if (output === "true") parsedValue = true
+        else if (output === "false") parsedValue = false
+      }
+
+      return setValueByPath(originalInput, path, parsedValue) as Content
     },
   },
 }

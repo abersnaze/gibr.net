@@ -59,7 +59,6 @@ export function analyze(src: Step, options: Record<string, string | undefined>):
         score: "score" in result ? result.score : 0,
         content: "content" in result ? result.content : undefined,
         message: "message" in result ? result.message : undefined,
-        inverse: "inverse" in result ? result.inverse : undefined,
         from_name: transform.name,
         from_id: transform_id,
         display: undefined,

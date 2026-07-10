@@ -120,23 +120,17 @@ const transforms: Record<string, Transform> = {
 
       try {
         const content = base58.decode(data)
-
-        // Provide the inverse function: binary -> base58 string
-        const inverse = (content: Content) => {
-          if (content instanceof Uint8Array) {
-            return base58.encode(content)
-          }
-          throw new Error("Expected Uint8Array for base58 encoding")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // binary -> base58 string
+    invert: (output: Content) => {
+      if (output instanceof Uint8Array) {
+        return base58.encode(output)
+      }
+      throw new Error("Expected Uint8Array for base58 encoding")
     },
   },
   base58_encode: {
@@ -160,23 +154,17 @@ const transforms: Record<string, Transform> = {
 
       try {
         const content = base58.encode(data)
-
-        // Provide the inverse function: base58 string -> binary
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            return base58.decode(content)
-          }
-          throw new Error("Expected string for base58 decoding")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // base58 string -> binary
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        return base58.decode(output)
+      }
+      throw new Error("Expected string for base58 decoding")
     },
   },
 }

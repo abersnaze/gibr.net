@@ -18,23 +18,17 @@ const transforms: Record<string, Transform> = {
           return { score: 0.0, message: `Expected string, got ${typeof data}` }
         }
         const content = fromHexString(data.replace(/[\s]*/g, ""))
-
-        // Provide the inverse function: binary -> hex string
-        const inverse = (content: Content) => {
-          if (content instanceof Uint8Array) {
-            return toHexString(content)
-          }
-          throw new Error("Expected Uint8Array for base16 encoding")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // binary -> hex string
+    invert: (output: Content) => {
+      if (output instanceof Uint8Array) {
+        return toHexString(output)
+      }
+      throw new Error("Expected Uint8Array for base16 encoding")
     },
   },
   b16_encode: {
@@ -46,23 +40,17 @@ const transforms: Record<string, Transform> = {
           return { score: 0.0, message: `Expected Uint8Array, got ${typeof data}` }
         }
         const content = toHexString(data)
-
-        // Provide the inverse function: hex string -> binary
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            return fromHexString(content.replace(/[\s]*/g, ""))
-          }
-          throw new Error("Expected string for base16 encoding")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // hex string -> binary
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        return fromHexString(output.replace(/[\s]*/g, ""))
+      }
+      throw new Error("Expected string for base16 encoding")
     },
   },
 }

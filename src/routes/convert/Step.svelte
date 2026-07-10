@@ -330,28 +330,11 @@
               clearTimeout(currentState.spinnerTimeout)
             }
 
-            // Recreate the inverse function from the main thread
             const transform = allTransforms[transformId]
-            let inverse = null
-            if (result.hasInverse && transform) {
-              // Use step.options when this is the selected transform — it holds the actual
-              // options from user interaction (e.g. jsonpath path, substring range) which
-              // may differ from the component-level options[transformId] default.
-              const effectiveOptions =
-                transformId === step.transform_id && step.options != null
-                  ? step.options
-                  : options[transformId]
-              const freshResult = transform.analyze(step.content, effectiveOptions)
-              if ("content" in freshResult) {
-                inverse = freshResult.inverse
-              }
-            }
-
             const analyzeResult = {
               score: "score" in result ? result.score : 0,
               content: "content" in result ? result.content : undefined,
               message: "message" in result ? result.message : undefined,
-              inverse,
               from_name: transform?.name || transformId,
               from_id: transformId,
               display:
@@ -379,16 +362,6 @@
               showSpinner: false,
             })
             workerStates = new Map(workerStates)
-
-            // If this transform is currently selected, update the inverse function
-            // but don't propagate (onupdate) as that would clear subsequent steps
-            // The transform is already applied, we just need to update the inverse.
-            // Do NOT overwrite step.options here — for display-driven transforms like
-            // jsonpath_select and substring_select, step.options is set by user interaction
-            // and options[transformId] holds the wrong default (e.g. "." vs ".a").
-            if (step.transform_id === transformId && analyzeResult.content !== undefined) {
-              step.inverse = analyzeResult.inverse
-            }
           } catch (error) {
             console.error(
               `[Step ${index}] Error processing worker result for ${transformId}:`,
@@ -548,7 +521,6 @@
     // If clicking on already selected transform, unselect it
     if (step.transform_id === transformId) {
       step.transform_id = null
-      step.inverse = undefined
       previousTransformId = null
 
       // Clear subsequent steps
@@ -569,8 +541,9 @@
     const result = state.result
 
     if (result && "content" in result && result.content !== undefined) {
-      // Store the inverse function
-      step.inverse = result.inverse
+      // Persist the effective options so the pipeline's invert and reapply use
+      // the same ones the analysis ran with (e.g. the auto-detected epoch unit)
+      step.options = options[transformId]
 
       // Pass the result back to parent
       onupdate({
@@ -624,7 +597,6 @@
         })
 
         step.transform_id = "jsonpath_select"
-        step.inverse = result.inverse
         previousTransformId = "jsonpath_select"
 
         const display = getDisplayName(result.content)
@@ -635,7 +607,6 @@
             result: {
               score: result.score,
               content: result.content,
-              inverse: result.inverse,
               from_name: transform.name,
               from_id: "jsonpath_select",
               display,
@@ -689,7 +660,6 @@
         })
 
         step.transform_id = "substring_select"
-        step.inverse = result.inverse
         previousTransformId = "substring_select"
 
         const display = getDisplayName(result.content)
@@ -700,7 +670,6 @@
             result: {
               score: result.score,
               content: result.content,
-              inverse: result.inverse,
               from_name: transform.name,
               from_id: "substring_select",
               display,

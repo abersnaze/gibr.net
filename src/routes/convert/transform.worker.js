@@ -60,9 +60,6 @@ self.addEventListener("message", (event) => {
         message: result.message,
         options: result.options, // Pass through detected options (e.g., auto-detected time unit)
         display: result.display, // Pass through custom display component (e.g., DateDisplay)
-        // Note: we can't transfer the inverse function to the main thread
-        // The main thread will need to recreate it
-        hasInverse: typeof result.inverse === "function",
       },
     })
   } catch (error) {

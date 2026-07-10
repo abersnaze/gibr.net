@@ -7,23 +7,17 @@ const transforms: Record<string, Transform> = {
     analyze: (data: unknown) => {
       try {
         const content = JSON.stringify(data, undefined, 2)
-
-        // Provide the inverse function: JSON text -> object
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            return JSON.parse(content)
-          }
-          throw new Error("Expected string for JSON parsing")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // JSON text -> object
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        return JSON.parse(output)
+      }
+      throw new Error("Expected string for JSON parsing")
     },
   },
   json_parse: {
@@ -35,17 +29,7 @@ const transforms: Record<string, Transform> = {
       }
       try {
         const content = JSON.parse(data)
-
-        // Provide the inverse function: object -> JSON text
-        const inverse = (content: Content) => {
-          return JSON.stringify(content, undefined, 2)
-        }
-
-        return {
-          score: 2.0,
-          content,
-          inverse,
-        }
+        return { score: 2.0, content }
       } catch (error) {
         // Extract position from error message
         const errorMessage = error instanceof Error ? error.message : String(error)
@@ -132,6 +116,10 @@ const transforms: Record<string, Transform> = {
 
         return { score: 0.0, message: detailedMessage }
       }
+    },
+    // object -> JSON text
+    invert: (output: Content) => {
+      return JSON.stringify(output, undefined, 2)
     },
   },
 }

@@ -17,7 +17,6 @@
       content: "", // Start with empty content
       curr: "TextDisplay" as DisplayName,
       transform_id: null, // transform_id to the next step
-      inverse: undefined, // Store the inverse function for this step
     },
   ]
 

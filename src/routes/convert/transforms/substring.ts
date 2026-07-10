@@ -17,26 +17,22 @@ const transforms: Record<string, Transform> = {
 
         // Extract substring
         const content = data.substring(start, end)
-
-        // Provide the inverse function: substring -> full string with substring replaced
-        const inverse = (newContent: Content, opts?: string) => {
-          if (typeof newContent !== "string") {
-            throw new Error("Expected string for substring replacement")
-          }
-
-          // Replace the substring with the new content
-          const { start, end } = opts ? JSON.parse(opts) : { start: 0, end: 0 }
-          return data.substring(0, start) + newContent + data.substring(end)
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error instanceof Error ? error.message : String(error) }
       }
+    },
+    // substring -> full original string with the substring replaced
+    invert: (output: Content, originalInput: Content, options?: string) => {
+      if (typeof output !== "string") {
+        throw new Error("Expected string for substring replacement")
+      }
+      if (typeof originalInput !== "string") {
+        throw new Error("Expected string as the original input")
+      }
+
+      const { start, end } = options ? JSON.parse(options) : { start: 0, end: 0 }
+      return originalInput.substring(0, start) + output + originalInput.substring(end)
     },
   },
 }

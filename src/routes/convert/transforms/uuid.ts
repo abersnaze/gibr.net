@@ -439,23 +439,17 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = parseUUID(trimmed)
-
-        // Provide inverse function that reconstructs UUID from components
-        const inverse = (content: Content) => {
-          if (typeof content === "object" && content !== null && "version" in content) {
-            return reconstructUUID(content as UUIDComponents)
-          }
-          throw new Error("Expected UUID components object")
-        }
-
-        return {
-          score: 2.0,
-          content,
-          inverse,
-        }
+        return { score: 2.0, content }
       } catch (error) {
         return { score: 0.0, message: error instanceof Error ? error.message : String(error) }
       }
+    },
+    // UUID components -> UUID string
+    invert: (output: Content) => {
+      if (typeof output === "object" && output !== null && "version" in output) {
+        return reconstructUUID(output as UUIDComponents)
+      }
+      throw new Error("Expected UUID components object")
     },
   },
   uuid_compose: {
@@ -477,23 +471,21 @@ const transforms: Record<string, Transform> = {
         const timestampUnit = options || "ms"
         const content = reconstructUUID(data as UUIDComponents, timestampUnit)
 
-        // Provide inverse function
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            return parseUUID(content)
-          }
-          throw new Error("Expected UUID string")
-        }
-
         return {
           score: 1.0,
           content,
-          inverse,
           options: timestampUnit,
         }
       } catch (error) {
         return { score: 0.0, message: error instanceof Error ? error.message : String(error) }
       }
+    },
+    // UUID string -> UUID components
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        return parseUUID(output)
+      }
+      throw new Error("Expected UUID string")
     },
   },
 }

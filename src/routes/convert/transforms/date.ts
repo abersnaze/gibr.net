@@ -61,33 +61,31 @@ const transforms: Record<string, Transform> = {
           return { score: 0, message: "Invalid date", display }
         }
 
-        // Inverse: convert Date back to epoch in the specified unit
-        const inverse = (dateInput: Content, opts?: string) => {
-          const inverseUnit = opts || options || "ms"
-          const epochMs =
-            dateInput instanceof Date ? dateInput.getTime() : new Date(String(dateInput)).getTime()
-
-          // If the date is invalid, return empty string to avoid NaN propagation
-          if (isNaN(epochMs)) {
-            return ""
-          }
-
-          if (inverseUnit === "sec") {
-            return Math.floor(epochMs / 1000).toString()
-          } else if (inverseUnit === "ns") {
-            return (epochMs * 1000000).toString()
-          } else {
-            return epochMs.toString()
-          }
-        }
-
-        return { score: 1.5, content: date, inverse, options: unit }
+        return { score: 1.5, content: date, options: unit }
       } catch (error: unknown) {
         return {
           score: 0,
           message: error instanceof Error ? error.message : String(error),
           display: "DateDisplay",
         }
+      }
+    },
+    // Date -> epoch string in the unit given by options
+    invert: (output: Content, _originalInput: Content, options?: string) => {
+      const unit = options || "ms"
+      const epochMs = output instanceof Date ? output.getTime() : new Date(String(output)).getTime()
+
+      // If the date is invalid, return empty string to avoid NaN propagation
+      if (isNaN(epochMs)) {
+        return ""
+      }
+
+      if (unit === "sec") {
+        return Math.floor(epochMs / 1000).toString()
+      } else if (unit === "ns") {
+        return (epochMs * 1000000).toString()
+      } else {
+        return epochMs.toString()
       }
     },
   },
@@ -123,12 +121,7 @@ const transforms: Record<string, Transform> = {
           return { score: 0, message: "Not a valid date string", display }
         }
 
-        // Inverse: return the Date object as-is (DateDisplay handles formatting)
-        const inverse = (dateInput: Content) => {
-          return dateInput instanceof Date ? dateInput : new Date(String(dateInput))
-        }
-
-        return { score: 2.0, content: date, inverse }
+        return { score: 2.0, content: date }
       } catch (error: unknown) {
         return {
           score: 0,
@@ -136,6 +129,10 @@ const transforms: Record<string, Transform> = {
           display: "DateDisplay",
         }
       }
+    },
+    // Date -> Date as-is (DateDisplay handles formatting)
+    invert: (output: Content) => {
+      return output instanceof Date ? output : new Date(String(output))
     },
   },
 
@@ -151,21 +148,7 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = date.getTime().toString()
-
-        // Inverse: convert epoch milliseconds back to Date
-        const inverse = (epochMs: Content) => {
-          const ms = parseInt(String(epochMs), 10)
-          if (isNaN(ms)) {
-            return ""
-          }
-          const date = new Date(ms)
-          if (isNaN(date.getTime())) {
-            return ""
-          }
-          return date
-        }
-
-        return { score: 2.0, content, inverse }
+        return { score: 2.0, content }
       } catch (error: unknown) {
         return {
           score: 0,
@@ -173,6 +156,18 @@ const transforms: Record<string, Transform> = {
           display: "DateDisplay",
         }
       }
+    },
+    // epoch milliseconds -> Date
+    invert: (output: Content) => {
+      const ms = parseInt(String(output), 10)
+      if (isNaN(ms)) {
+        return ""
+      }
+      const date = new Date(ms)
+      if (isNaN(date.getTime())) {
+        return ""
+      }
+      return date
     },
   },
 
@@ -188,21 +183,7 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = Math.floor(date.getTime() / 1000).toString()
-
-        // Inverse: convert epoch seconds back to Date
-        const inverse = (epochSec: Content) => {
-          const sec = parseInt(String(epochSec), 10)
-          if (isNaN(sec)) {
-            return ""
-          }
-          const date = new Date(sec * 1000)
-          if (isNaN(date.getTime())) {
-            return ""
-          }
-          return date
-        }
-
-        return { score: 2.0, content, inverse }
+        return { score: 2.0, content }
       } catch (error: unknown) {
         return {
           score: 0,
@@ -210,6 +191,18 @@ const transforms: Record<string, Transform> = {
           display: "DateDisplay",
         }
       }
+    },
+    // epoch seconds -> Date
+    invert: (output: Content) => {
+      const sec = parseInt(String(output), 10)
+      if (isNaN(sec)) {
+        return ""
+      }
+      const date = new Date(sec * 1000)
+      if (isNaN(date.getTime())) {
+        return ""
+      }
+      return date
     },
   },
 
@@ -225,22 +218,7 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = (date.getTime() * 1000000).toString()
-
-        // Inverse: convert epoch nanoseconds back to Date
-        const inverse = (epochNs: Content) => {
-          const ns = parseInt(String(epochNs), 10)
-          if (isNaN(ns)) {
-            return ""
-          }
-          const ms = ns / 1000000
-          const date = new Date(ms)
-          if (isNaN(date.getTime())) {
-            return ""
-          }
-          return date
-        }
-
-        return { score: 2.0, content, inverse }
+        return { score: 2.0, content }
       } catch (error: unknown) {
         return {
           score: 0,
@@ -248,6 +226,19 @@ const transforms: Record<string, Transform> = {
           display: "DateDisplay",
         }
       }
+    },
+    // epoch nanoseconds -> Date
+    invert: (output: Content) => {
+      const ns = parseInt(String(output), 10)
+      if (isNaN(ns)) {
+        return ""
+      }
+      const ms = ns / 1000000
+      const date = new Date(ms)
+      if (isNaN(date.getTime())) {
+        return ""
+      }
+      return date
     },
   },
 }

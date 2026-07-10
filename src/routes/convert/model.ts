@@ -17,13 +17,11 @@ export interface Step {
   curr: DisplayName
   transform_id: string | null
   options?: string
-  inverse?: (content: Content, options?: string) => Content
 }
 
 export interface Success {
   score: number
   content: Content
-  inverse?: (content: Content, options?: string) => Content
   options?: string
 }
 
@@ -39,7 +37,6 @@ export interface AnalyzeResult {
   display?: DisplayName
   content?: Content
   message?: unknown
-  inverse?: (content: Content, options?: string) => Content
   from_name: string
   from_id: string
   optionComponent?: OptionComponent
@@ -51,6 +48,14 @@ export interface Transform {
   name: string
   prev: DisplayName
   analyze: (input: unknown, options?: string) => Result
+  /**
+   * Reverse the transform: given the (possibly edited) output content and the
+   * original input that produced it, return the new input content. Must be
+   * stateless — derive everything from the arguments, never from closures —
+   * so analyze results stay serializable across the worker boundary.
+   * Optional: without it, backward propagation stops at this step.
+   */
+  invert?: (output: Content, originalInput: Content, options?: string) => Content
   optionsComponent?: OptionComponent
   defaults?: string
 }

@@ -1,4 +1,4 @@
-import { analyze, defaultOpts } from "./transforms/index.js"
+import { allTransforms, analyze, defaultOpts } from "./transforms/index.js"
 import type { Content, DisplayName, Step, Success } from "./model.js"
 
 // Result of applying a transform, as dispatched by Step.svelte
@@ -25,7 +25,6 @@ export function reapplyTransform(step: Step): StepResult | null {
     ? {
         score: result.score || 0,
         content: result.content,
-        inverse: result.inverse,
         nextComponent: result.display,
       }
     : null
@@ -70,7 +69,6 @@ export function propagateForward(steps: Step[], startIndex: number): Step[] {
 
     const next = reapplyTransform(currentStep)
     if (next && next.content !== undefined) {
-      result[i] = { ...currentStep, inverse: next.inverse }
       result[i + 1] = {
         ...result[i + 1],
         content: next.content,
@@ -85,9 +83,9 @@ export function propagateForward(steps: Step[], startIndex: number): Step[] {
   return result
 }
 
-// Walk stored inverses backward from the edited step to step 0, then re-apply
-// all transforms forward so every step reflects the edit. The backward walk
-// stops at the first step without a stored inverse.
+// Walk transform inverts backward from the edited step to step 0, then
+// re-apply all transforms forward so every step reflects the edit. The
+// backward walk stops at the first transform without an invert.
 // Returns a new array; the input array and its steps are not modified.
 export function applyInverse(steps: Step[], editedIndex: number): Step[] {
   const result = [...steps]
@@ -95,16 +93,22 @@ export function applyInverse(steps: Step[], editedIndex: number): Step[] {
     const currentStep = result[i]
     const nextStep = result[i + 1]
 
-    if (!currentStep.transform_id || !currentStep.inverse) {
+    const transform = currentStep.transform_id ? allTransforms[currentStep.transform_id] : undefined
+    if (!transform?.invert) {
       break // Can't go further backwards
     }
 
     try {
-      // Options tell inverses like substring_select where to reinsert content
-      const newContent = currentStep.inverse(nextStep.content, currentStep.options)
+      // The step's own content is the input that produced nextStep; options
+      // tell inverts like substring_select where to reinsert the content
+      const newContent = transform.invert(
+        nextStep.content,
+        currentStep.content,
+        currentStep.options
+      )
       result[i] = { ...currentStep, content: newContent }
     } catch (error) {
-      console.error(`[pipeline] inverse of ${currentStep.transform_id} at step ${i} failed:`, error)
+      console.error(`[pipeline] invert of ${currentStep.transform_id} at step ${i} failed:`, error)
       break
     }
   }
@@ -126,7 +130,6 @@ export function applyStepUpdate(steps: Step[], update: StepUpdate): Step[] {
       content: result.content,
       curr: result.nextComponent || "TextDisplay",
       transform_id: null,
-      inverse: undefined,
     }
 
     // The transform changed — subsequent steps no longer apply

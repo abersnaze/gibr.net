@@ -172,23 +172,17 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = base64ToBytes(data.replace(/[\s]*/g, ""))
-
-        // Provide the inverse function: binary -> base64 string
-        const inverse = (content: Content) => {
-          if (content instanceof Uint8Array) {
-            return bytesToBase64(content)
-          }
-          throw new Error("Expected Uint8Array for base64 encoding")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error instanceof Error ? error.message : String(error) }
       }
+    },
+    // binary -> base64 string
+    invert: (output: Content) => {
+      if (output instanceof Uint8Array) {
+        return bytesToBase64(output)
+      }
+      throw new Error("Expected Uint8Array for base64 encoding")
     },
   },
   b64_encode: {
@@ -202,23 +196,17 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = bytesToBase64(data)
-
-        // Provide the inverse function: base64 string -> binary
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            return base64ToBytes(content.replace(/[\s]*/g, ""))
-          }
-          throw new Error("Expected string for base64 decoding")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error instanceof Error ? error.message : String(error) }
       }
+    },
+    // base64 string -> binary
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        return base64ToBytes(output.replace(/[\s]*/g, ""))
+      }
+      throw new Error("Expected string for base64 decoding")
     },
   },
 }

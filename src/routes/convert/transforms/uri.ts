@@ -111,20 +111,14 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = parseURI(data.trim())
-
-        // Provide the inverse function: URI components -> URI string
-        const inverse = (content: Content) => {
-          return buildURI(content as URIComponents)
-        }
-
-        return {
-          score: 2.0, // High score for valid URIs
-          content,
-          inverse,
-        }
+        return { score: 2.0, content } // High score for valid URIs
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // URI components -> URI string
+    invert: (output: Content) => {
+      return buildURI(output as URIComponents)
     },
   },
   uri_build: {
@@ -145,23 +139,17 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = buildURI(data as URIComponents)
-
-        // Provide the inverse function: URI string -> URI components
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            return parseURI(content)
-          }
-          throw new Error("Expected string for URI parsing")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // URI string -> URI components
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        return parseURI(output)
+      }
+      throw new Error("Expected string for URI parsing")
     },
   },
   uri_decode: {
@@ -174,28 +162,23 @@ const transforms: Record<string, Transform> = {
       try {
         const content = decodeURIComponent(data)
 
-        // Provide the inverse function: decoded text -> encoded URI
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            return encodeURIComponent(content)
-          }
-          throw new Error("Expected string for URI encoding")
-        }
-
         // Check if the string contains percent-encoded characters
         const hasPercentEncoding = /%[0-9A-Fa-f]{2}/.test(data)
 
         // Score higher if there's actually something to decode
         const score = hasPercentEncoding && content !== data ? 1.0 : 0.1
 
-        return {
-          score,
-          content,
-          inverse,
-        }
+        return { score, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // decoded text -> encoded URI
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        return encodeURIComponent(output)
+      }
+      throw new Error("Expected string for URI encoding")
     },
   },
   uri_encode: {
@@ -208,25 +191,20 @@ const transforms: Record<string, Transform> = {
       try {
         const content = encodeURIComponent(data)
 
-        // Provide the inverse function: encoded URI -> decoded text
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            return decodeURIComponent(content)
-          }
-          throw new Error("Expected string for URI decoding")
-        }
-
         // Score higher if encoding actually changed something
         const score = content !== data ? 1.0 : 0.1
 
-        return {
-          score,
-          content,
-          inverse,
-        }
+        return { score, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // encoded URI -> decoded text
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        return decodeURIComponent(output)
+      }
+      throw new Error("Expected string for URI decoding")
     },
   },
 }

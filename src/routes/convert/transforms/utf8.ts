@@ -12,23 +12,17 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = new TextDecoder("utf8", { fatal: true }).decode(data)
-
-        // Provide the inverse function: text -> binary
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            return new TextEncoder().encode(content)
-          }
-          throw new Error("Expected string for UTF-8 encoding")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error instanceof Error ? error.message : String(error) }
       }
+    },
+    // text -> binary
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        return new TextEncoder().encode(output)
+      }
+      throw new Error("Expected string for UTF-8 encoding")
     },
   },
   utf8_encode: {
@@ -42,23 +36,17 @@ const transforms: Record<string, Transform> = {
         }
 
         const content = new TextEncoder().encode(data)
-
-        // Provide the inverse function: binary -> text
-        const inverse = (content: Content) => {
-          if (content instanceof Uint8Array) {
-            return new TextDecoder("utf8", { fatal: true }).decode(content)
-          }
-          throw new Error("Expected Uint8Array for UTF-8 decoding")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error instanceof Error ? error.message : String(error) }
       }
+    },
+    // binary -> text
+    invert: (output: Content) => {
+      if (output instanceof Uint8Array) {
+        return new TextDecoder("utf8", { fatal: true }).decode(output)
+      }
+      throw new Error("Expected Uint8Array for UTF-8 decoding")
     },
   },
 }

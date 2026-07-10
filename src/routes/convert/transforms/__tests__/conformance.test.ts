@@ -101,13 +101,13 @@ for (const [id, transform] of Object.entries(allTransforms)) {
           expect(getDisplayName(result.content as Content)).toBe(c.expectedDisplay)
         }
 
-        // Round trip: inverse(content) must reproduce the input, or the
-        // documented normalization when the fixture sets roundTrip
+        // Round trip: invert(output, input, options) must reproduce the input,
+        // or the documented normalization when the fixture sets roundTrip
         if (c.roundTrip !== false) {
-          const inverse = result.inverse
-          expect(inverse, "successful transforms must provide an inverse").toBeDefined()
-          if (!inverse) return
-          const back = inverse(result.content as Content, options)
+          const invert = transform.invert
+          expect(invert, "transforms must provide invert for round-trips").toBeDefined()
+          if (!invert) return
+          const back = invert(result.content as Content, c.input as Content, options)
           expect(back).toEqual(c.roundTrip === undefined ? c.input : c.roundTrip)
         }
       })

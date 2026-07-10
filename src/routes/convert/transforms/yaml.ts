@@ -8,27 +8,21 @@ const transforms: Record<string, Transform> = {
     analyze: (data: unknown) => {
       try {
         const content = yaml.stringify(data)
-
-        // Provide the inverse function: YAML text -> object
-        const inverse = (content: Content) => {
-          if (typeof content === "string") {
-            let parsed = yaml.parseAllDocuments(content).map((doc) => doc.toJSON())
-            if (parsed.length === 1) {
-              parsed = parsed[0]
-            }
-            return parsed
-          }
-          throw new Error("Expected string for YAML parsing")
-        }
-
-        return {
-          score: 1.0,
-          content,
-          inverse,
-        }
+        return { score: 1.0, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // YAML text -> object
+    invert: (output: Content) => {
+      if (typeof output === "string") {
+        let parsed = yaml.parseAllDocuments(output).map((doc) => doc.toJSON())
+        if (parsed.length === 1) {
+          parsed = parsed[0]
+        }
+        return parsed
+      }
+      throw new Error("Expected string for YAML parsing")
     },
   },
   yaml_parse: {
@@ -44,20 +38,14 @@ const transforms: Record<string, Transform> = {
         if (content.length === 1) {
           content = content[0]
         }
-
-        // Provide the inverse function: object -> YAML text
-        const inverse = (content: Content) => {
-          return yaml.stringify(content)
-        }
-
-        return {
-          score,
-          content,
-          inverse,
-        }
+        return { score, content }
       } catch (error) {
         return { score: 0.0, message: error }
       }
+    },
+    // object -> YAML text
+    invert: (output: Content) => {
+      return yaml.stringify(output)
     },
   },
 }

@@ -7,7 +7,7 @@ import type { Content, Step } from "../model.js"
 const b64 = (s: string) => bytesToBase64(new TextEncoder().encode(s))
 
 function textStep(content: Content): Step {
-  return { content, curr: "TextDisplay", transform_id: null, inverse: undefined }
+  return { content, curr: "TextDisplay", transform_id: null }
 }
 
 // Simulate the user picking a transform on a step, as Step.svelte does:
@@ -31,14 +31,12 @@ function selectTransform(
     throw new Error(`transform ${transformId} failed: ${String(result?.message)}`)
   }
 
-  step.inverse = result.inverse
   updated[index] = step
   return applyStepUpdate(updated, {
     index,
     result: {
       score: result.score,
       content: result.content,
-      inverse: result.inverse,
       nextComponent: result.display,
     },
     clearSubsequent,
@@ -131,9 +129,7 @@ describe("editing a downstream step propagates backward then forward", () => {
 
 describe("transforms with options", () => {
   it("jsonpath selection round-trips an edit into the original object", () => {
-    let steps: Step[] = [
-      { content: { a: { b: 1 } }, curr: "TreeDisplay", transform_id: null, inverse: undefined },
-    ]
+    let steps: Step[] = [{ content: { a: { b: 1 } }, curr: "TreeDisplay", transform_id: null }]
     steps = selectTransform(steps, 0, "jsonpath_select", ".a.b")
     expect(steps).toHaveLength(2)
     expect(steps[1].content).toBe(1)
@@ -157,7 +153,7 @@ describe("transform selection changes", () => {
   it("unselecting a transform truncates the chain", () => {
     let steps = buildB64JsonChain('{"a":1}')
     const updated = [...steps]
-    updated[1] = { ...updated[1], transform_id: null, inverse: undefined }
+    updated[1] = { ...updated[1], transform_id: null }
     steps = applyStepUpdate(updated, { index: 1, result: null, clearSubsequent: true })
     expect(steps).toHaveLength(2)
   })
