@@ -7,8 +7,8 @@
 <main>
   <h1><Logo /> Hello, I'm George</h1>
   <p>
-    I'm a software developer at Netflix. My most influential contribution to software is my work on
-    RxJava and asynchronous APIs.
+    I'm a software developer at ex-Netflix. My most influential contribution to software is my work on
+    RxJava and Service Capacity Planner.
   </p>
   <ul>
     <li>

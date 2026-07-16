@@ -6,27 +6,18 @@
 
 <main>
   <h1><Logo /> Things I use.</h1>
-  <p>My day job is writing database abstractions for Netflix. The things I use to do my job are:</p>
+  <p>My day job is writing database abstractions for ex-Netflix. The things I use to do my job are:</p>
   <section>
     <h2>Software</h2>
     <dl>
-      <dt><a href="https://www.eclipse.org/">Eclipse</a></dt>
-      <dd>I've been using Eclipse for decades for my work at Apple and Netflix.</dd>
+      <dt><a href="https://claude.com/product/claude-code">Claude Code</a></dt>
+      <dd>I've been using Claude Code extensively since late 2025.</dd>
       <dt><a href="https://www.jetbrains.com/idea/">IntelliJ Idea</a></dt>
       <dd>I've been trying out IntelliJ on a few new projects for the last year or two.</dd>
       <dt><a href="https://code.visualstudio.com">VisualStudio Code</a></dt>
       <dd>For all things not Java.</dd>
-      <dt><a href="https://claude.ai/">Claude</a></dt>
-      <dd>AI assistant for coding and problem solving.</dd>
-      <dt><a href="https://www.omnigroup.com/omnigraffle">OmniGraffle</a></dt>
-      <dd>My first choice when making diagrams</dd>
       <dt><a href="https://www.google.com/chrome">Chrome</a></dt>
       <dd>default browser</dd>
-      <dt><a href="https://www.sourcetreeapp.com/">SourceTree</a></dt>
-      <dd>
-        I still use <a href="https://www.perforce.com/downloads/visual-merge-tool">Pefore Merge</a> for
-        resolving merge conflicts.
-      </dd>
     </dl>
   </section>
   <section>
@@ -68,8 +59,6 @@
       <dt>
         <a href="https://www.yubico.com/product/yubikey-5c-nano/">YubiKey: 5C Nano</a>
       </dt>
-      <dd>I tiny numb on the side of my laptop that I use with Netflix's two factor SSO.</dd>
-      <dt><a href="https://www.diatec.co.jp/en/det.php?prod_c=763">Filco: Keyboard</a></dt>
       <dd>
         Tenkeyless size with <a href="https://www.cherrymx.de/cherry-mx/mx-original/mx-blue.html"
           >Cherry MX Blue</a
