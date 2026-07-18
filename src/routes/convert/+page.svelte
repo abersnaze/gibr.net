@@ -4,6 +4,7 @@
   import Step from "./Step.svelte"
   import type { DisplayName, Step as StepType } from "./model"
   import { applyStepUpdate } from "./pipeline"
+  import { buildShareableUrl, restoreStepsFromUrl } from "./urlState"
   import { browser } from "$app/environment"
   import { tick, setContext } from "svelte"
   import { writable } from "svelte/store"
@@ -12,18 +13,34 @@
     document.title = "GIBR.net: Convert Things"
   }
 
-  // Track the entire conversion chain for bidirectional editing
-  let steps: StepType[] = [
-    {
-      content: "", // Start with empty content
-      curr: "TextDisplay" as DisplayName,
-      transform_id: null, // transform_id to the next step
-    },
-  ]
+  function defaultSteps(): StepType[] {
+    return [
+      {
+        content: "", // Start with empty content
+        curr: "TextDisplay" as DisplayName,
+        transform_id: null, // transform_id to the next step
+      },
+    ]
+  }
+
+  // Track the entire conversion chain for bidirectional editing. Restored
+  // from the URL's `s` param when a shared link was opened.
+  let steps: StepType[] = (browser && restoreStepsFromUrl(window.location.search)) || defaultSteps()
 
   // Store to pause step analysis during bulk updates to prevent flickering
   const pauseAnalysis = writable(false)
   setContext("pauseAnalysis", pauseAnalysis)
+
+  // Keep the URL in sync with the chain so it can be bookmarked or shared.
+  // Falls back to the bare path when the input isn't plain text or the
+  // encoded state would make the URL too long.
+  $: if (browser) {
+    const shareable = buildShareableUrl(steps, window.location.href)
+    const target = shareable ?? `${window.location.origin}${window.location.pathname}`
+    if (target !== window.location.href) {
+      window.history.replaceState(null, "", target)
+    }
+  }
 
   // Handle updates from child steps. All propagation logic lives in
   // pipeline.ts; this component only pauses per-step analysis while the
